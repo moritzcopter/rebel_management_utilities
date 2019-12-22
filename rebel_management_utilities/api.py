@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import requests
 
-__all__ = ['load_api_key', 'get_all_members']
+__all__ = ['get_all_members']
 
 
 def load_api_key():
