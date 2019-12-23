@@ -1,24 +1,13 @@
-import os
-from dotenv import load_dotenv
 import requests
 
 __all__ = ['get_all_members']
 
 
-def load_api_key():
-    load_dotenv()
-    key = os.getenv("ACTION_NETWORK_API_KEY")
-
-    if not key:
-        raise OSError('ACTION_NETWORK_API_KEY not found in environment variables')
-
-
-def get_all_members():
+def get_all_members(api_key):
     url = 'https://actionnetwork.org/api/v2/people'
-    members = []
+    headers = {'OSDI-API-Token': api_key}
 
-    key = load_api_key()
-    headers = {'OSDI-API-Token': key}
+    members = []
 
     while True:
         response = requests.get(url, headers=headers)
@@ -30,7 +19,7 @@ def get_all_members():
         members.extend(new_members)
         try:
             url = content['_links']['next']['href']
-        except KeyError:  # end querying data when there is no more data left
+        except KeyError:  # end querying when there is no more data left
             break
 
     return members
