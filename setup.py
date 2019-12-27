@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rebel_management_utilities",
-    version="0.0.1",
+    version="0.0.2",
     author="SamLubbers",
     author_email="samxr@protonmail.com",
     description="Utility functions for querying, cleaning and processing data of Extinction Rebellion members",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/SamLubbers/rebel_management_utilities",
+    url="https://github.com/xrnl/rebel_management_utilities",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
