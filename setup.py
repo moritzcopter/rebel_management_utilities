@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rebel_management_utilities",
-    version="0.0.2",
+    version="0.0.3",
     author="SamLubbers",
     author_email="samxr@protonmail.com",
     description="Utility functions for querying, cleaning and processing data of Extinction Rebellion members",
@@ -18,7 +18,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.5',
     install_requires=[
         'python-dotenv',
         'requests'
