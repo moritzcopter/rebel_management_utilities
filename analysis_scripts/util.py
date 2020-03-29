@@ -27,3 +27,24 @@ def query(endpoint=None, url=None):
     if status_code != 200:
         raise requests.HTTPError(response=response)
     return response.json()
+
+
+def query_all(endpoint):
+    responses = []
+    url = API_URL + endpoint
+    headers = {'OSDI-API-Token': load_api_key()}
+
+    while True:
+        response = requests.get(url, headers=headers)
+        status_code = response.status_code
+        if status_code != 200:
+            raise requests.HTTPError(response=response)
+        res = response.json()
+        content = res['_embedded']['osdi:' + endpoint]
+        responses.extend(content)
+        try:
+            url = res['_links']['next']['href']
+        except KeyError:  # end querying when there is no more data left
+            break
+
+    return responses

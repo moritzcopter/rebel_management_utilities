@@ -1,11 +1,10 @@
 import pandas as pd
 
-from analysis_scripts.util import query
+from analysis_scripts.util import query_all
 
 
 def get_forms():
-    res = query(endpoint='forms')
-    forms = res['_embedded']['osdi:forms']
+    forms = query_all(endpoint='forms')
 
     form_df = []
 
