@@ -1,5 +1,6 @@
 import pandas as pd
 
+from analysis_scripts.dashboard import push_to_dashboard
 from analysis_scripts.util import query_all
 
 LOCAL_GROUPS = [
@@ -29,6 +30,7 @@ def get_local_group(row):
     for local_group in LOCAL_GROUPS:
         if local_group in row['from']:
             return local_group
+    return 'Other'
 
 
 def get_messages():
@@ -50,18 +52,19 @@ def get_messages():
     return df
 
 
-def export_messages_stats(export_filename='messages.csv'):
+def export_messages_stats(start_date):
     """
-    Compiles and saves email stats
-    To update local groups stats google spreadsheet run this and replace the hidden raw email email data sheet
-    (View > hidden sheets) with output (File > Import > Upload > Replace current sheet)
-    Afterwards, hide the raw email data sheet (right click sheet > Hide sheet)
+    Compiles and pushes email stats to google sheets dashboard
     Sheet URL: https://docs.google.com/spreadsheets/d/1LrSjkBQqZsIzGKs25O7FC9pHFoOEeRuAAs3IL1NEE8g/edit#gid=709383388
+    :param start_date: only messages after this date are exported
     """
     df = get_messages()
     df = df[df['sent'] > 0]
     df_formatted = df.sort_values('date', ascending=True)[
         ['date', 'local_group', 'from', 'subject', 'sent', 'clicked', 'opened', 'bounced',
-         'unsubscribed', 'clicked_ratio', 'opened_ratio']].set_index('date')
+         'unsubscribed', 'clicked_ratio', 'opened_ratio']]
+    df_formatted = df_formatted[df_formatted['date'] >= start_date]
+    df_formatted['date'] = pd.to_datetime(df_formatted['date']).dt.strftime('%Y-%m-%d')
+    df_formatted = df_formatted.fillna(0.0)
 
-    df_formatted.to_csv(export_filename)
+    push_to_dashboard(df_formatted, range_name='Raw email data!A:K')
