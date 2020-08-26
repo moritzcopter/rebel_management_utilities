@@ -61,7 +61,7 @@ def get_all_ags(api_key, an_ag_endpoints):
         if status_code != 200:
             raise requests.HTTPError(response=response)
         content = response.json()
-        print(".")
+
         # Try to include the rep's name - some people haven't filled this in.
         try:
             content["custom_fields"].update({"rep_name" : content["given_name"]})
@@ -83,9 +83,6 @@ async def sync_channels(api_key, links, super_admins, an_ag_endpoints):
         ags_region = [convert_phone_number(ag["Phone number"]) for ag in ags if converter(MUNICIPALITY, REGION, ag["Municipality"]) == region]
         ags_in_channel = ["+" + user.phone for user in await client.get_participants(links[region])]
 
-        print(region)
-        print(ags_region)
-        print(ags_in_channel)
         # Find the people who should be added/removed.
         to_add = [ag for ag in ags_region if ag not in ags_in_channel]
 
