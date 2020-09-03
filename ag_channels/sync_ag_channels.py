@@ -1,9 +1,36 @@
+"""
+@author: Martijn Brehm (mattermost: @martijn_amsterdam)
+@date: 03/09/2020
+
+This file synchronises the phonenumbers of AG's of XR NL registered in AN
+with the Telegram broadcast channels for AG's.
+
+The file should be accompanied by an .env file containing:
+
+- api_id_tg (string): the id of the telegram api app created for this script.
+- api_hash_tg (string): the hash of the telegram api app id for this script.
+- phone (string): phonenumber of the telegram account used to run the script.
+- username (string): telegram username of the telegram account used to run the script.
+- api_key_an (string): api key for action network.
+- links (dict): dictionary mapping the five regions to a telegram invite link
+                for the correponding channels. Example of format:
+        {"Midden":"","Zuid-Oost":"","Zuid-Holland":"","Noord-Oost":"","Noord-West":""}
+- super_admins (list): list of phonenumbers of admins who receive daily logs.
+- an_ag_endpoints (list): list of AN endpoints of the different AG forms.
+
+Requirementss:
+- Telethon           1.16.0
+- phonenumbers       8.12.9
+"""
+
 from telethon import TelegramClient
 from telethon.tl.functions.channels import InviteToChannelRequest
 from telethon.tl.types import InputPhoneContact
 from telethon.tl.functions.contacts import ImportContactsRequest
 from telethon.errors import UserIdInvalidError
 from telethon.errors.rpcerrorlist import UserNotMutualContactError, FloodWaitError
+
+import phonenumbers
 
 from time import sleep, localtime, time, strftime
 from converter import converter, POSTCODE, MUNICIPALITY, TOWN, PROVINCE, REGION
@@ -12,35 +39,71 @@ import json
 from dotenv import load_dotenv
 import os
 
+
 regions = ["Midden", "Zuid-Oost", "Zuid-Holland", "Noord-Oost", "Noord-West"]
 logs = {}
+DEBUG = False # Is this good practice??
+
 
 def convert_phone_number(phonenumber):
     """
-        Replace 06 in phonenumbers with +316, to work with the telegram API.
+        Parses a phonenumber and returns it in E.164 format (i.e. +31 6 ..).
+        When a provided phonenumber has no country code (i.e. 06 12 ..) the
+        Dutch country code is assumed and added.
+
+        Params:
+        - phonenumber (string) : the given phonenumber. Can be any format.
+
+        Returns:
+        - on succes: (string): the phonenumber in E.164 format.
+        - on failure: None.
     """
-    if phonenumber[0:2] == "06":
-        return "+316" + phonenumber[2:]
-    return phonenumber
+    # Country code was provided and detected.
+    try:
+        return phonenumbers.format_number(
+                phonenumbers.parse(phonenumber),
+                phonenumbers.PhoneNumberFormat.E164
+        )
+    # No country code provided - assume the number is Dutch.
+    except phonenumbers.phonenumberutil.NumberParseException as e:
+        try:
+            return phonenumbers.format_number(
+                    phonenumbers.parse(phonenumber, "NL"),
+                    phonenumbers.PhoneNumberFormat.E164
+            )
+        # Invalid number
+        except Exception as e:
+            return None
 
 
 def get_all_ags(api_key, an_ag_endpoints):
     """
         Requests a list of all AN users who registered one of the AG forms.
-        Returns a list of their custom fields. This includes their municipality,
-        AG data and phonenumber.
+        First requests all responses to the different AN forms where AG's
+        are registered. Then requests the data of the people who signed these
+        forms; this data contains the AG data.
+
+        Params:
+        - api_key (str) : the api key for AN.
+        - an_ag_endpoints (list) : a list of endpoints to the AN forms where
+                                   AG's are registered.
+
+        Returns:
+        - (list) : a list of all the custom fields of the people who signed
+                   an AG form. This contains, among others: 'AG_name', 'rep_name',
+                   'Municipality', 'phone_number' (of the rep).
     """
     headers = {'OSDI-API-Token': api_key}
     ags = []
     people_endpoints = []
 
+    print(an_ag_endpoints)
+
     # Get all the people who signed the 4 AG forms.
     for endpoint in an_ag_endpoints:
-        url = an_ag_endpoints[endpoint]
-
         # Loop - every request carries at most 25 entries.
         while True:
-            response = requests.get(url, headers=headers)
+            response = requests.get(endpoint, headers=headers)
             status_code = response.status_code
             if status_code != 200:
                 raise requests.HTTPError(response=response)
@@ -49,7 +112,7 @@ def get_all_ags(api_key, an_ag_endpoints):
             # Get the endoints to the people who signed the form - they hold the AG info.
             people_endpoints += [p["_links"]["osdi:person"]["href"] for p in content["_embedded"]["osdi:submissions"]]
             try:
-                url = content['_links']['next']['href']
+                endpoint = content['_links']['next']['href']
             except KeyError:  # end querying when there is no more data left
                 break
 
@@ -61,84 +124,137 @@ def get_all_ags(api_key, an_ag_endpoints):
             raise requests.HTTPError(response=response)
         content = response.json()
 
-        # Try to include the rep's name - some people haven't filled this in.
-        try:
-            if content["given_name"] != 'test': # Multiple people had 'test' as name...
-                content["custom_fields"].update({"rep_name" : content["given_name"]})
-            else:
-                content["custom_fields"].update({"rep_name" : "rebel"})
-        except KeyError:
-            content["custom_fields"].update({"rep_name" : 'rebel'})
+        # Include the rep's name - some people haven't filled this in.
+        if "given_name" in content:
+            content["custom_fields"].update(({"rep_name" : content["given_name"]}))
+        else:
+            content["custom_fields"].update(({"rep_name" : "rebel"}))
+
         ags.append(content["custom_fields"])
     return ags
 
 
-async def sync_channels(api_key, links, super_admins, an_ag_endpoints):
+async def sync_channels(api_key, links, an_ag_endpoints):
     """
         Syncs the AG reps from Action Network with the Telegram broadcasts.
+        First gets all registered AG's from AN and filters these on the
+        five regions. Checks if any of these AG's are not yet in the
+        regions corresponding Telegram channel. If so, adds them.
+
+        Logs any made changes to the 'logs' global.
+
+        Params:
+        - api_key (str) : the api key for AN.
+        - links (dict) : a dictionary which maps the names a region to the
+                         invite link of the region's Telegram channel.
+        - an_ag_endpoints (list) : a list of endpoints to the AN forms where
+                                   AG's are registered.
     """
     ags = get_all_ags(api_key, an_ag_endpoints)
 
     for region in regions:
+        # Get the AGs which are this region.
+        ags_registered = [ag for ag in ags if converter(MUNICIPALITY, REGION, ag["Municipality"]) == region]
 
-        # Get the AG's which should be in this channel.
-        ags_region = [(convert_phone_number(ag["Phone number"]), ag["rep_name"]) for ag in ags if converter(MUNICIPALITY, REGION, ag["Municipality"]) == region]
+        # Parse these AGs' phonenumbers - remove AGs with invalid numbers.
+        ags_invalid_phone = []
+        for ag in ags_registered:
+            if convert_phone_number(ag["Phone number"]): # Valid number
+                ag["Phone number"] = convert_phone_number(ag["Phone number"])
+            else: # Invalid number
+                ags_registered.remove(ag)
+                ags_invalid_phone.append(ag)
+
+        # Get the AGs in this region's Telegram channel.
         ags_in_channel = ["+" + user.phone for user in await client.get_participants(links[region]) if user.phone]
 
         # Find the people who should be added/removed.
-        to_add = [ag for ag in ags_region if ag[0] not in ags_in_channel]
-        already_in = [ag for ag in ags_region if ag[0] in ags_in_channel]
+        to_add = [ag for ag in ags_registered if ag["Phone number"] not in ags_in_channel]
 
-        print(region)
-        print("an: {}".format(ags_region))
-        print("telegram: {}".format(ags_in_channel))
-        print("add: {}".format(to_add))
-        print("already in: {}".format(already_in))
+        if DEBUG:
+            import pprint
+            pp = pprint.PrettyPrinter(indent=4)
+            print("Region: {}".format(region))
+            print("     AG's registed in AN: ")
+            pp.pprint(ags_registered)
+            print("     AG's in telegram: ")
+            pp.pprint(ags_in_channel)
+            print("     AG's that should be added: ")
+            pp.pprint(to_add)
+            print("     AG's with invalid phone numbers: ")
+            pp.pprint(ags_invalid_phone)
+            print("\n")
 
         # Add users and log the result.
         for ag in to_add:
             try:
-                new_phonenumber = await add_user(ag, region, links)
-                if "+" + new_phonenumber in ags_in_channel: # User was already in channel.
-                    logs[region]["update_number"].append(ag)
-                else: # User was added.
-                    logs[region]["added"].append(ag)
-                    await send_invite(ag, region, links)
-            except UserNotMutualContactError: # User not a mut. contact.
-                if not ag in logs[region]["error"]:
-                    logs[region]["error"].append(ag)
+                await add_user(ag, region, links)
+                logs[region]["added"].append(filter_ag(ag))
+                await send_invite(ag, region, links)
             except IndexError: # User doesn't have telegram.
                 if not ag in logs[region]["no_telegram"]:
-                    logs[region]["no_telegram"].append(ag)
+                    logs[region]["no_telegram"].append(filter_ag(ag))
+            except Exception as e:
+                if not ag in logs[region]["error"]:
+                    logs[region]["error"].append((filter_ag(ag), e))
 
+        # Log invalid phone numbers.
+        for ag in ags_invalid_phone:
+            logs[region]["update_number"].append(filter(ag))
+
+
+def filter_ag(ag):
+    """
+        Removes unnecessary fields from a user dict to allow for clean logs.
+
+        Params:
+        - ag (dict) : a dictionary of the custom fields of a user on AN.
+
+        Returns:
+        - (dict) : the same dict, but only with the: 'rep_name',
+                   'Municipality', 'AG_name' and 'Phone number' fields.
+    """
+    try:
+        return {"AG_name" : ag["AG_name"],
+                "Municipality" : ag["Municipality"],
+                "rep_name" : ag["rep_name"],
+                "Phone number" : ag["Phone number"]}
+    except KeyError: # Sometimes, the data isn't complete.
+        return ag
 
 
 async def send_log(admins):
     """
-        Sends the current content of 'logs' to the super admins specified in the
-        environment variable 'super_admins'. This log contain:
-        - the new phonenumbers added to each regional channel;
-        - the amount of phonenumbers which don't have telegram;
-        - the amount of people which had an errro while adding them.
-    """
-    message = "Dagelijks log van affiniteitsgroep kanalen:\n"
-    for region in regions:
-        message += "\n"
-        message += region
-        message += "\n      Aantal toegevoegd: {}".format(len(logs[region]["added"]))
-        message += "\n      Toegevoegd: {}".format(logs[region]["added"])
-        message += "\n      Geen telegram: {}".format(logs[region]["no_telegram"])
-        message += "\n      Error bij toevoegen: {}".format(logs[region]["error"])
-        message += "\n      Update nummer: {}".format(logs[region]["update_number"])
+        Sends a Telegram message containing the current logs to
+        the admins specified in the environment variable 'super_admins'.
 
+        The log message contains:
+        - the new phonenumbers added to each regional channel;
+        - phonenumbers which don't have telegram;
+        - phonenumbers which gave another error when trying to add them;
+        - phonenumbers which have been detected as invalid.
+
+        Params:
+        - admins (list) : a list of admins to which to send the logs.
+    """
     for admin in admins:
+        message = "Log van affiniteitsgroep kanalen:\n"
         await client.send_message(admin, message)
+
+        for region in regions:
+            message = "\n"
+            message += region
+            message += "\n      Toegevoegd: {}".format(logs[region]["added"])
+            message += "\n      Geen telegram: {}".format(logs[region]["no_telegram"])
+            message += "\n      Error bij toevoegen: {}".format(logs[region]["error"])
+            message += "\n      Update nummer: {}".format(logs[region]["update_number"])
+            await client.send_message(admin, message)
 
 
 def clear_logs():
     """
-        Clears the 'logs' var, and resets it to an empty dict of dicts with the
-        used format.
+        Clears the 'logs' gloval, and resets it to an empty dict of dicts with
+        the used format.
     """
     for region in regions:
         logs[region] = {"added" : [], "no_telegram" : [], "error" : [], "update_number" : []}
@@ -146,49 +262,62 @@ def clear_logs():
 
 async def send_invite(user, region, links):
     """
-        Sends a bilingual message to the specified 'user' to invite them to the
-        AG rep telegram channel corresponding to the 'region' specified.
+        Sends a bilingual message on Telegram to the specified user, telling them
+        they've been added to their region's Telegram channel. The message also
+        contains a link to the channel, to allow them to add their fellow AG members.
+
+        Assumes a correct phone number to which a Telegram account has been coupled.
+
+        Params:
+        - user (dict) : a dictionary of the custom fields of this user on AN.
+        - region (str) : the name of the region this person lives in.
+        - links (dict) : a dictionary which maps the names a region to the
+                         invite link of the region's Telegram channel.
     """
     # Format the messages.
-    message = "Beste {}, \nJij staat in Action Network geregistreerd als de afgevaardigte/representative van je Extinction Rebellion affiniteitsgroep. Zojuist ben je toegevoegd aan het officiële telegram kanaal voor affiniteitsgroepen in regio {}. Dit kanaal houdt je up-to-date over alle acties in je regio, en geeft andere informatie die je affiniteitsgroep helpt bij het actie voeren. Door de informatie die hier langs komt in de gaten te houden, en door te geven aan je affiniteitsgroep, weet je alles wat nodig is om in actie te komen met Extinction Rebellion! \nMeer informatie over de kanalen vind je hier: tinyurl.com/ag-kanalen . Mochten ook andere leden van je affiniteitsgroep in het kanaal willen, dan is hier een link waarmee ze toegang krijgen: {} . Mocht jullie groep in meerdere regio's actief zijn, stuur mij dan even een berichte - ik kan je dan ook in de kanelen voor andere regio's plaatsen. Voor overige vragen kun je mij hier ook via Telegram contacteren.\nLove & Rage Martijn van Extinction Rebellion".format(user[1], region, links[region])
-    message_en = "Dear {},\nYou're registered as the representative of your Extinction Rebellion affinity group through Action Network. If all went well, you were just added to the official information channel for affinity groups in your region: {}. This channel will keep you up to date on all actions in your region, as well as other information that is useful to support your affinity group. By keeping an eye on the information that comes through here, and passing it on to your affinity group, you will know everything you need to come into action with XR!\nMore information about the channels can be found here: tinyurl.com/ag-kanalen   If other members of your affinity group also wish to join the channel, here's a link to give them access: {} . If your affinity group is active in mulitple reagions, please send me a message, and I will add you to the channels for the other regions as well. You can also reach me here on telegram for any addition questions!\nLove & Rage Martijn from Extinction Rebellion".format(user[1], region, links[region])
+    message = "Beste {}, \nJij staat in Action Network geregistreerd als de afgevaardigte/representative van je Extinction Rebellion affiniteitsgroep. Zojuist ben je toegevoegd aan het officiële telegram kanaal voor affiniteitsgroepen in regio {}. Dit kanaal houdt je up-to-date over alle acties in je regio, en geeft andere informatie die je affiniteitsgroep helpt bij het actie voeren. Door de informatie die hier langs komt in de gaten te houden, en door te geven aan je affiniteitsgroep, weet je alles wat nodig is om in actie te komen met Extinction Rebellion! \nMeer informatie over de kanalen vind je hier: tinyurl.com/ag-kanalen . Mochten ook andere leden van je affiniteitsgroep in het kanaal willen, dan is hier een link waarmee ze toegang krijgen: {} . Mocht jullie groep in meerdere regio's actief zijn, stuur mij dan even een berichtje - ik kan je dan ook in de kanelen voor andere regio's plaatsen. Voor overige vragen kun je mij hier ook via Telegram contacteren.\nLove & Rage Martijn van Extinction Rebellion".format(user["rep_name"], region, links[region])
+    message_en = "Dear {},\nYou're registered as the representative of your Extinction Rebellion affinity group through Action Network. If all went well, you were just added to the official information channel for affinity groups in your region: {}. This channel will keep you up to date on all actions in your region, as well as other information that is useful to support your affinity group. By keeping an eye on the information that comes through here, and passing it on to your affinity group, you will know everything you need to come into action with XR!\nMore information about the channels can be found here: tinyurl.com/ag-kanalen   If other members of your affinity group also wish to join the channel, here's a link to give them access: {} . If your affinity group is active in mulitple reagions, please send me a message, and I will add you to the channels for the other regions as well. You can also reach me here on telegram for any addition questions!\nLove & Rage Martijn from Extinction Rebellion".format(user["rep_name"], region, links[region])
 
     # Send them.
-    try:
-        await client.send_message(user[0], message_en)
-        await client.send_message(user[0], message)
-    except UserIdInvalidError and ValueError as e:
-        print("Invalid phonenumber - either the AG rep has not installed telegram, or the phone number is invalid. User: {}    Error: '{}'".format(user, e))
+    await client.send_message(user["Phone number"], message_en)
+    await client.send_message(user["Phone number"], message)
 
 
 async def add_user(user, region, links):
+    """
+        Adds the specified user to the telegram channel of the specified region.
+        First adds the user as a contact; this gives permission to add them to
+        a channel.
+
+        TODO: remove the user from contacts.
+
+        Params:
+        - user (dict) : a dictionary of the custom fields of this user on AN.
+        - region (str) : the name of the region this person lives in.
+        - links (dict) : a dictionary which maps the names a region to the
+                         invite link of the region's Telegram channel.
+    """
     # Add user to contact. This allows us to add them to the channel
-    contact = InputPhoneContact(client_id=0, phone=user[0], first_name=user[1], last_name="xr_ag_rep_{}".format(region))
-    try:
-        result = await client(ImportContactsRequest([contact]))
-    except FloodWaitError as e:
-        sleep(5 * 60)
-        return
+    contact = InputPhoneContact(client_id=0, phone=user["Phone number"], first_name=user["rep_name"], last_name="xr_ag_rep_{}".format(region))
+
+    # There's strong constraints on making this request.
+    while True:
+        try:
+            result = await client(ImportContactsRequest([contact]))
+            break
+        except FloodWaitError as e:
+            print("Flood errror - waiting: {}".format(e))
+            sleep(60)
 
     # Add them to the correct channel.
     await client(InviteToChannelRequest(links[region], [result.users[0]]))
 
-    # # Send them a welcome message.
-    # await send_invite(user, region, links)
-    # Return the phonenumber parsed by Telegram; this always has the format
-    # 316...  In AN there is no standard format.
-    # the input format
-    return result.users[0].phone
-
-
-async def rem_user(user, region):
-    try:
-        await client.kick_participant(region_data[region]["link"], user)
-    except UserIdInvalidError and ValueError as e:
-        print("Error when removing {} from {}: '{}'".format(user, e))
-
 
 async def main():
+    """
+        Starts the sync loop. The loop repeats every five minutes.
+        Sends a log of the progress to the admins each day.
+    """
     # Start-up.
     await client.start()
     current_day = int(strftime("%j", localtime(time()))) - 1
@@ -196,22 +325,21 @@ async def main():
     # Get required environment variables.
     api_key = os.getenv("api_key_an")
     links = json.loads(os.getenv("links"))
-    super_admins = os.getenv("super_admins")
+    super_admins = json.loads(os.getenv("super_admins"))
     an_ag_endpoints = json.loads(os.getenv("an_ag_endpoints"))
-    admins = json.loads(os.getenv("super_admins"))
 
     # This sets up the log dict structure.
     clear_logs()
 
     # Sync the channels.
     while True:
-        await sync_channels(api_key, links, super_admins, an_ag_endpoints)
+        await sync_channels(api_key, links, an_ag_endpoints)
 
         # If it's a new day, log.
         new_day = int(strftime("%j", localtime(time())))
         if new_day != current_day:
             current_day = new_day
-            await send_log(admins)
+            await send_log(super_admins)
             clear_logs()
 
         # Loop every 5 minutes.
