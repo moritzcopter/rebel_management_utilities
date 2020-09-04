@@ -1,26 +1,4 @@
 """
-@author: Martijn Brehm (mattermost: @martijn_amsterdam)
-@date: 03/09/2020
-
-This file synchronises the phonenumbers of AG's of XR NL registered in AN
-with the Telegram broadcast channels for AG's.
-
-The file should be accompanied by an .env file containing:
-
-- api_id_tg (string): the id of the telegram api app created for this script.
-- api_hash_tg (string): the hash of the telegram api app id for this script.
-- phone (string): phonenumber of the telegram account used to run the script.
-- username (string): telegram username of the telegram account used to run the script.
-- api_key_an (string): api key for action network.
-- links (dict): dictionary mapping the five regions to a telegram invite link
-                for the correponding channels. Example of format:
-        {"Midden":"","Zuid-Oost":"","Zuid-Holland":"","Noord-Oost":"","Noord-West":""}
-- super_admins (list): list of phonenumbers of admins who receive daily logs.
-- an_ag_endpoints (list): list of AN endpoints of the different AG forms.
-
-Requirementss:
-- Telethon           1.16.0
-- phonenumbers       8.12.9
 """
 
 from telethon import TelegramClient
