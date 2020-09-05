@@ -1,33 +1,12 @@
 import pandas as pd
 
+from analysis_scripts.config.config import get_config
 from analysis_scripts.dashboard import push_to_dashboard
 from analysis_scripts.util import query_all
 
-LOCAL_GROUPS = [
-    "Amsterdam",
-    "Arnhem/Nijmegen",
-    "Brabant",
-    "Castricum",
-    "Delft",
-    "Den Haag",
-    "Deventer",
-    "Enschede",
-    "Groningen",
-    "Haarlem",
-    "Leeuwarden/Fryslân",
-    "Leiden",
-    "Maastricht",
-    "Roermond",
-    "Rotterdam",
-    "Utrecht",
-    "Wageningen",
-    "Ysselvallei",
-    "Zaandam",
-    "Zwolle"]
-
 
 def get_local_group(row):
-    for local_group in LOCAL_GROUPS:
+    for local_group in get_config()['local_groups']:
         if local_group in row['from']:
             return local_group
     return 'Other'
