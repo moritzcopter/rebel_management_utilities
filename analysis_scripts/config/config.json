@@ -1,0 +1,199 @@
+{
+  "local_groups": {
+    "Deventer": {
+      "municipalities": [
+        "Deventer",
+        "Olst-Wijhe",
+        "Raalte",
+        "Rijssen-Holten",
+        "Lochem",
+        "Voorst"
+      ]
+    },
+    "Haarlem": {
+      "municipalities": [
+        "Haarlem",
+        "Haarlemmermeer"
+      ]
+    },
+    "Leiden": {
+      "municipalities": [
+        "Leiden",
+        "Leidendorp",
+        "Oegstgeest"
+      ]
+    },
+    "Maastricht": {
+      "municipalities": [
+        "Maastricht"
+      ]
+    },
+    "Utrecht": {
+      "municipalities": [
+        "Utrecht"
+      ]
+    },
+    "Wageningen": {
+      "municipalities": [
+        "Wageningen"
+      ]
+    },
+    "Amersfoort": {
+      "municipalities": [
+        "Amersfoort"
+      ]
+    },
+    "Amsterdam": {
+      "municipalities": [
+        "Amsterdam",
+        "Diemen",
+        "Ouder-Amstel",
+        "Weesp"
+      ]
+    },
+    "Brabant": {
+      "municipalities": [
+        "Alphen-Chaam",
+        "Altena",
+        "Asten",
+        "Baarle-Nassau",
+        "Bergeijk",
+        "Bergen op Zoom",
+        "Bernheze",
+        "Best",
+        "Bladel",
+        "Boekel",
+        "Boxmeer",
+        "Boxtel",
+        "Breda",
+        "Cranendonck",
+        "Cuijk",
+        "Deurne",
+        "Dongen",
+        "Drimmelen",
+        "Eersel",
+        "Eindhoven",
+        "Etten-Leur",
+        "Geertruidenberg",
+        "Geldrop-Mierlo",
+        "Gemert-Bakel",
+        "Gilze en Rijen",
+        "Goirle",
+        "Grave",
+        "Haaren",
+        "Halderberge",
+        "Heeze-Leende",
+        "Helmond",
+        "'s-Hertogenbosch",
+        "Heusden",
+        "Hilvarenbeek",
+        "Laarbeek",
+        "Landerd",
+        "Loon op Zand",
+        "Meierijstad",
+        "Mill en Sint Hubert",
+        "Moerdijk",
+        "Nuenen",
+        "Oirschot",
+        "Oisterwijk",
+        "Oosterhout",
+        "Oss",
+        "Reusel-De Mierden",
+        "Roosendaal",
+        "Rucphen",
+        "Sint Anthonius",
+        "Sint-Michielsgestel",
+        "Someren",
+        "Son en Breugel",
+        "Steenbergen",
+        "Tilburg",
+        "Uden",
+        "Valkenswaard",
+        "Veldhoven",
+        "Vught",
+        "Waalre",
+        "Waalwijk",
+        "Woensdrecht",
+        "Zundert"
+      ]
+    },
+    "Castricum ": {
+      "municipalities": [
+        "Castricum",
+        "Beverwijk",
+        "Heiloo",
+        "Uitgeest",
+        "Akersloot",
+        "Schagen",
+        "Heemskerk",
+        "Alkmaar",
+        "Heerhugewaard",
+        "Bergen (Noord-Holland)"
+      ]
+    },
+    "Den Haag": {
+      "municipalities": [
+        "'s-Gravenhage",
+        "Den Haag",
+        "Rijswijk"
+      ]
+    },
+    "Dordrecht": {
+      "municipalities": [
+        "Dordrecht",
+        "Zwijndrecht",
+        "Sliedrecht",
+        "Papendrecht",
+        "Hendrik-Ido-Ambacht",
+        "Alblasserdam",
+        "Hardinxveld-Giessendam"
+      ]
+    },
+    "Enschede": {
+      "municipalities": [
+        "Hengelo",
+        "Enschede"
+      ]
+    },
+    "Roermond": {
+      "municipalities": [
+        "Roermond",
+        "Mook en Middelaar",
+        "Maasgouw",
+        "Echt-Susteren",
+        "Bergen (Limburg)",
+        "Venray",
+        "Horst aan de Maas",
+        "Peel",
+        "Venlo",
+        "Beesel",
+        "Leudal",
+        "Niederweert",
+        "Weert",
+        "Roerdalen"
+      ]
+    },
+    "Rotterdam": {
+      "municipalities": [
+        "Rotterdam",
+        "Schiedam",
+        "Vlaardingen",
+        "Capelle",
+        "Krimpen"
+      ]
+    },
+    "Zaanstad": {
+      "municipalities": [
+        "Wormerland",
+        "Zaanstad",
+        "Oost-Zaan",
+        "Zaanstreek"
+      ]
+    },
+    "Zwolle": {
+      "municipalities": [
+        "Zwolle"
+      ]
+    }
+  }
+}

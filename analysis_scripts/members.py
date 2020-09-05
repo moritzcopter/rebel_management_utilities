@@ -5,6 +5,7 @@ import pandas as pd
 
 from analysis_scripts.dashboard import push_to_dashboard
 from analysis_scripts.forms import get_forms
+from analysis_scripts.mattermost import post_to_channel
 from analysis_scripts.util import query, load_api_key
 from rebel_management_utilities import get_all_members
 
@@ -53,17 +54,32 @@ def get_member_forms(member):
     return forms
 
 
-def extract_data(member):
+def get_local_group(member):
     try:
         local_group = member['custom_fields']['local_group']
     except KeyError:
         local_group = None
     if local_group == 'Not selected' or local_group == 'No group nearby':
         local_group = None
+    if not local_group:
+        try:
+            municipality = member['custom_fields']['Municipality']
+            config = get_config()
+            for _local_group, local_group_config in config['local_groups'].items():
+                if municipality in local_group_config['municipalities']:
+                    local_group = _local_group
+                    break
+        except:
+            pass
+    return local_group
+
+
+def extract_data(member):
     sign_up_date = pd.to_datetime(member['created_date']).date()
     if sign_up_date < FORMATION_DATE:
         sign_up_date = pd.NaT
     forms = get_member_forms(member)
+    local_group = get_local_group(member)
     return [{'local_group': local_group, 'sign_up_date': sign_up_date, 'sign_up_channel': form} for form in forms]
 
 
