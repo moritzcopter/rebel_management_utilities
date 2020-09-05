@@ -3,7 +3,7 @@ import json
 
 import pandas as pd
 
-from analysis_scripts.dashboard import push_to_dashboard
+from analysis_scripts.config.config import get_config
 from analysis_scripts.forms import get_forms
 from analysis_scripts.mattermost import post_to_channel
 from analysis_scripts.util import query, load_api_key
@@ -54,23 +54,26 @@ def get_member_forms(member):
     return forms
 
 
+def get_custom_field(member, field):
+    value = None
+    if field in member['custom_fields']:
+        value = member['custom_fields'][field]
+    return value
+
+
 def get_local_group(member):
-    try:
-        local_group = member['custom_fields']['local_group']
-    except KeyError:
-        local_group = None
+    local_group = get_custom_field(member, 'local_group')
+
     if local_group == 'Not selected' or local_group == 'No group nearby':
         local_group = None
+
     if not local_group:
-        try:
-            municipality = member['custom_fields']['Municipality']
-            config = get_config()
-            for _local_group, local_group_config in config['local_groups'].items():
-                if municipality in local_group_config['municipalities']:
-                    local_group = _local_group
-                    break
-        except:
-            pass
+        municipality = get_custom_field(member, 'Municipality')
+        config = get_config()
+        for _local_group, local_group_config in config['local_groups'].items():
+            if municipality in local_group_config['municipalities']:
+                local_group = _local_group
+                break
     return local_group
 
 
@@ -80,7 +83,9 @@ def extract_data(member):
         sign_up_date = pd.NaT
     forms = get_member_forms(member)
     local_group = get_local_group(member)
-    return [{'local_group': local_group, 'sign_up_date': sign_up_date, 'sign_up_channel': form} for form in forms]
+    municipality = get_custom_field(member, 'Municipality')
+    return [{'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
+             'sign_up_channel': form} for form in forms]
 
 
 def get_member_stats(members, start_date):
