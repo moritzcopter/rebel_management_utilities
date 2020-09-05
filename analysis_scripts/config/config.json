@@ -194,6 +194,26 @@
       "municipalities": [
         "Zwolle"
       ]
+    },
+    "Groningen": {
+      "municipalities": [
+        "Groningen"
+      ]
+    },
+    "Delft": {
+      "municipalities": [
+        "Delft"
+      ]
+    },
+    "Leeuwarden/Fryslân": {
+      "municipalities": [
+        "Leeuwarden/Fryslân"
+      ]
+    },
+    "Amstelveen": {
+      "municipalities": [
+        "Amstelveen"
+      ]
     }
   }
 }
