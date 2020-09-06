@@ -99,7 +99,3 @@ if __name__ == "__main__":
 
     export_member_stats(start_date=last_update_date)
     export_messages_stats(start_date=last_update_date)
-
-    new_update_date = pd.Timestamp.today().strftime('%Y-%m-%d')
-    df = pd.DataFrame([new_update_date])
-    push_to_dashboard(df, range_name=UPDATE_DATE_RANGE_NAME)

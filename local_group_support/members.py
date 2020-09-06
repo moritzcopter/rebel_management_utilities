@@ -1,11 +1,11 @@
 import datetime
-import json
 
 import pandas as pd
 
 from local_group_support.config.config import get_config
 from local_group_support.forms import get_forms
-from local_group_support.util import query
+from local_group_support.util import query, load_api_key
+from rebel_management_utilities import get_all_members
 
 FORMATION_DATE = datetime.date(2018, 4, 1)
 
@@ -87,11 +87,7 @@ def extract_data(member):
 
 
 def get_member_stats(start_date):
-    # members = get_all_members(api_key=load_api_key())
-
-    BACKUP_FILE_PATH = '/Users/pburghardt/Drive/Projekte/xr/rebel_backup/src/backups/backup_rebels_06-09-2020_10:35:07.json'
-    with open(BACKUP_FILE_PATH) as f:
-        members = json.load(f)['members']
+    members = get_all_members(api_key=load_api_key())
 
     members_processed = []
 
