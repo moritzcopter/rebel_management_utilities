@@ -11,7 +11,7 @@ from telethon.errors.rpcerrorlist import UserNotMutualContactError, FloodWaitErr
 import phonenumbers
 
 from time import sleep, localtime, time, strftime
-from converter import converter, POSTCODE, MUNICIPALITY, TOWN, PROVINCE, REGION
+from converter import converter
 import requests
 import json
 from dotenv import load_dotenv
@@ -20,7 +20,7 @@ import os
 
 regions = ["Midden", "Zuid-Oost", "Zuid-Holland", "Noord-Oost", "Noord-West"]
 logs = {}
-DEBUG = False # Is this good practice??
+DEBUG = True # Is this good practice??
 
 
 def convert_phone_number(phonenumber):
@@ -133,7 +133,7 @@ async def sync_channels(api_key, links, an_ag_endpoints):
 
     for region in regions:
         # Get the AGs which are this region.
-        ags_registered = [ag for ag in ags if converter(MUNICIPALITY, REGION, ag["Municipality"]) == region]
+        ags_registered = [ag for ag in ags if converter("municipality", "region", ag["Municipality"]) == region]
 
         # Parse these AGs' phonenumbers - remove AGs with invalid numbers.
         ags_invalid_phone = []
@@ -155,13 +155,13 @@ async def sync_channels(api_key, links, an_ag_endpoints):
             pp = pprint.PrettyPrinter(indent=4)
             print("Region: {}".format(region))
             print("     AG's registed in AN: ")
-            pp.pprint(ags_registered)
+            pp.pprint([filter_ag(ag) for ag in ags_registered])
             print("     AG's in telegram: ")
-            pp.pprint(ags_in_channel)
+            pp.pprint([ag for ag in ags_in_channel])
             print("     AG's that should be added: ")
-            pp.pprint(to_add)
+            pp.pprint([filter_ag(ag) for ag in to_add])
             print("     AG's with invalid phone numbers: ")
-            pp.pprint(ags_invalid_phone)
+            pp.pprint([filter_ag(ag) for ag in ags_invalid_phone])
             print("\n")
 
         # Add users and log the result.
@@ -254,8 +254,8 @@ async def send_invite(user, region, links):
                          invite link of the region's Telegram channel.
     """
     # Format the messages.
-    message = "Beste {}, \nJij staat in Action Network geregistreerd als de afgevaardigte/representative van Extinction Rebellion affiniteitsgroep {}. Zojuist ben je toegevoegd aan het officiële telegram kanaal voor affiniteitsgroepen in regio {}. Dit kanaal houdt je up-to-date over alle acties in je regio, en geeft andere informatie die je affiniteitsgroep helpt bij het actie voeren. Door de informatie die hier langs komt in de gaten te houden, en door te geven aan je affiniteitsgroep, weet je alles wat nodig is om in actie te komen met Extinction Rebellion! \nMeer informatie over de kanalen vind je hier: tinyurl.com/ag-kanalen . Mochten ook andere leden van je affiniteitsgroep in het kanaal willen, dan is hier een link waarmee ze toegang krijgen: {} . Mocht jullie groep in meerdere regio's actief zijn, stuur mij dan even een berichtje - ik kan je dan ook in de kanelen voor andere regio's plaatsen. Voor overige vragen kun je mij hier ook via Telegram contacteren.\nLove & Rage Martijn van Extinction Rebellion".format(user["AG_name"], user["rep_name"], region, links[region])
-    message_en = "Dear {},\nYou're registered as the representative of your Extinction Rebellion affinity group {}. If all went well, you were just added to the official information channel for affinity groups in your region: {}. This channel will keep you up to date on all actions in your region, as well as other information that is useful to support your affinity group. By keeping an eye on the information that comes through here, and passing it on to your affinity group, you will know everything you need to come into action with XR!\nMore information about the channels can be found here: tinyurl.com/ag-kanalen   If other members of your affinity group also wish to join the channel, here's a link to give them access: {} . If your affinity group is active in mulitple reagions, please send me a message, and I will add you to the channels for the other regions as well. You can also reach me here on telegram for any addition questions!\nLove & Rage Martijn from Extinction Rebellion".format(user["AG_name"], user["rep_name"], region, links[region])
+    message = "Beste {}, \nJij staat in Action Network geregistreerd als de afgevaardigte/representative van Extinction Rebellion affiniteitsgroep {}. Zojuist ben je toegevoegd aan het officiële telegram kanaal voor affiniteitsgroepen in regio {}. Dit kanaal houdt je up-to-date over alle acties in je regio, en geeft andere informatie die je affiniteitsgroep helpt bij het actie voeren. Door de informatie die hier langs komt in de gaten te houden, en door te geven aan je affiniteitsgroep, weet je alles wat nodig is om in actie te komen met Extinction Rebellion! \nMeer informatie over de kanalen vind je hier: https://xrb.link/hn8LeH2X3 . Mochten ook andere leden van je affiniteitsgroep in het kanaal willen, dan is hier een link waarmee ze toegang krijgen: {} . Mocht jullie groep in meerdere regio's actief zijn, stuur mij dan even een berichtje - ik kan je dan ook in de kanelen voor andere regio's plaatsen. Voor overige vragen kun je mij hier ook via Telegram contacteren.\nLove & Rage Martijn van Extinction Rebellion".format(user["rep_name"], user["AG_name"], region, links[region])
+    message_en = "Dear {},\nYou're registered as the representative of your Extinction Rebellion affinity group {}. If all went well, you were just added to the official information channel for affinity groups in your region: {}. This channel will keep you up to date on all actions in your region, as well as other information that is useful to support your affinity group. By keeping an eye on the information that comes through here, and passing it on to your affinity group, you will know everything you need to come into action with XR!\nMore information about the channels can be found here: https://xrb.link/hn8LeH2X3   If other members of your affinity group also wish to join the channel, here's a link to give them access: {} . If your affinity group is active in mulitple reagions, please send me a message, and I will add you to the channels for the other regions as well. You can also reach me here on telegram for any addition questions!\nLove & Rage Martijn from Extinction Rebellion".format(user["rep_name"], user["AG_name"], region, links[region])
 
     # Send them.
     await client.send_message(user["Phone number"], message_en)
