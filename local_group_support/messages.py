@@ -1,7 +1,7 @@
 import pandas as pd
 
-from analysis_scripts.config.config import get_config
-from analysis_scripts.util import query_all
+from local_group_support.config.config import get_config
+from local_group_support.util import query_all
 
 
 def get_local_group(row):

@@ -8,8 +8,8 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from analysis_scripts.members import get_member_stats
-from analysis_scripts.messages import get_messages
+from local_group_support.members import get_member_stats
+from local_group_support.messages import get_messages
 
 import pandas as pd
 

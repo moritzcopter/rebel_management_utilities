@@ -4,7 +4,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
-from analysis_scripts.members import get_member_stats
+from local_group_support.members import get_member_stats
 
 BASE_URL = 'https://organise.earth/'
 
