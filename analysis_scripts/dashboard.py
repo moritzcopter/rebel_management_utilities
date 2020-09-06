@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import datetime
 import pickle
 from functools import lru_cache
 
@@ -7,8 +8,14 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+from analysis_scripts.members import get_member_stats
+from analysis_scripts.messages import get_messages
+
+import pandas as pd
+
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1LrSjkBQqZsIzGKs25O7FC9pHFoOEeRuAAs3IL1NEE8g'
+UPDATE_DATE_RANGE_NAME = 'Local group dashboard!K28:K28'
 
 
 @lru_cache(maxsize=128)
@@ -51,3 +58,48 @@ def pull_from_dashboard(range_name):
     rows = result.get('values', [])
     print('{0} rows retrieved.'.format(len(rows)))
     return rows
+
+
+def export_member_stats(start_date):
+    """
+    Compiles and pushes member stats to google sheets dashboard
+    :param start_date: only members that signed up after this date are exported
+    """
+
+    df = get_member_stats(start_date)
+    df_formatted = df[['sign_up_date', 'local_group', 'sign_up_channel']]
+    df_formatted['sign_up_date'] = pd.to_datetime(df_formatted['sign_up_date']).dt.strftime('%Y-%m-%d')
+
+    push_to_dashboard(df_formatted, range_name='Raw signup data!A:C')
+
+
+def export_messages_stats(start_date):
+    """
+    Compiles and pushes email stats to google sheets dashboard
+    Sheet URL: https://docs.google.com/spreadsheets/d/1LrSjkBQqZsIzGKs25O7FC9pHFoOEeRuAAs3IL1NEE8g/edit#gid=709383388
+    :param start_date: only messages after this date are exported
+    """
+    df = get_messages()
+    df = df[df['sent'] > 0]
+    df_formatted = df.sort_values('date', ascending=True)[
+        ['date', 'local_group', 'from', 'subject', 'sent', 'clicked', 'opened', 'bounced',
+         'unsubscribed', 'clicked_ratio', 'opened_ratio']]
+    df_formatted = df_formatted[df_formatted['date'] >= start_date]
+    df_formatted['date'] = pd.to_datetime(df_formatted['date']).dt.strftime('%Y-%m-%d')
+    df_formatted = df_formatted.fillna(0.0)
+
+    push_to_dashboard(df_formatted, range_name='Raw email data!A:K')
+
+
+if __name__ == "__main__":
+    export_messages_stats(start_date=datetime.date(2017, 1, 1))
+
+    result = pull_from_dashboard(range_name=UPDATE_DATE_RANGE_NAME)
+    last_update_date = pd.to_datetime(result[0][0]).date()
+
+    export_member_stats(start_date=last_update_date)
+    export_messages_stats(start_date=last_update_date)
+
+    new_update_date = pd.Timestamp.today().strftime('%Y-%m-%d')
+    df = pd.DataFrame([new_update_date])
+    push_to_dashboard(df, range_name=UPDATE_DATE_RANGE_NAME)

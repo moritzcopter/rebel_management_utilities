@@ -4,7 +4,6 @@ import json
 import pandas as pd
 
 from analysis_scripts.config.config import get_config
-from analysis_scripts.dashboard import push_to_dashboard
 from analysis_scripts.forms import get_forms
 from analysis_scripts.mattermost import post_to_channel
 from analysis_scripts.util import query, load_api_key
@@ -103,16 +102,3 @@ def get_member_stats(start_date):
 
     df = pd.DataFrame(members_processed)
     return df
-
-
-def export_member_stats(start_date):
-    """
-    Compiles and pushes member stats to google sheets dashboard
-    :param start_date: only members that signed up after this date are exported
-    """
-
-    df = get_member_stats(start_date)
-    df_formatted = df[['sign_up_date', 'local_group', 'sign_up_channel']]
-    df_formatted['sign_up_date'] = pd.to_datetime(df_formatted['sign_up_date']).dt.strftime('%Y-%m-%d')
-
-    push_to_dashboard(df_formatted, range_name='Raw signup data!A:C')
