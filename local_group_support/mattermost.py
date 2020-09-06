@@ -39,7 +39,7 @@ Hello @all integrators, last week a total of {total_signups} new people became i
 
 {df_grouped.to_markdown(index=False)}
 
-Let's integrate these rebels into the movement. You can [send them an e-mail](https://docs.google.com/document/d/17vLLVk9VLXmHN7AK3fhYw09AWzhuhwuQFgmG73IoZNk/edit#heading=h.7r56hnx8zumu) inviting them to an upcoming event, or [call them](https://docs.google.com/document/d/17vLLVk9VLXmHN7AK3fhYw09AWzhuhwuQFgmG73IoZNk/edit#heading=h.itfocsvmpr1c) to learn more about how they would like to get involved. 
-For any questions or feedback. Please send us a message :handshake: """
+Let's integrate these rebels into the movement. You can [send them an e-mail](https://docs.google.com/document/d/17vLLVk9VLXmHN7AK3fhYw09AWzhuhwuQFgmG73IoZNk/edit#heading=h.7r56hnx8zumu) inviting them to an upcoming event, or [call them](https://docs.google.com/document/d/17vLLVk9VLXmHN7AK3fhYw09AWzhuhwuQFgmG73IoZNk/edit#heading=h.itfocsvmpr1c) to learn more about how they would like to get involved. You can see more detailed statistics [here](https://docs.google.com/spreadsheets/d/1LrSjkBQqZsIzGKs25O7FC9pHFoOEeRuAAs3IL1NEE8g/edit#gid=709383388) 
+For any questions or feedback please send us a message :handshake: """
 
     post_to_channel('ptcfsqez17dy7r17m4sintgxbc', message)
