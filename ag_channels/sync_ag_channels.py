@@ -20,7 +20,7 @@ import os
 
 regions = ["Midden", "Zuid-Oost", "Zuid-Holland", "Noord-Oost", "Noord-West"]
 logs = {}
-DEBUG = True # Is this good practice??
+DEBUG = False # Is this good practice??
 
 
 def convert_phone_number(phonenumber):
