@@ -4,50 +4,50 @@ import pandas as pd
 
 from local_group_support.config.config import get_config
 from local_group_support.forms import get_forms
-from local_group_support.util import query, load_api_key
-from rebel_management_utilities import get_all_members
+from local_group_support.util import query, query_all
 
 FORMATION_DATE = datetime.date(2018, 4, 1)
 
 
-def get_form_name(submission, member):
+def get_form(submission, member):
     form_id = submission['action_network:form_id']
     has_website = 'action_network:referrer_data' in submission.keys() and \
                   submission['action_network:referrer_data']['source'] != 'none'
     form_mapping = get_forms().set_index('identifier')['name']
 
-    if form_id not in form_mapping.keys():
-        return 'Other'
+    form_name = 'Other'
+    sign_up_channel = 'Other'
 
-    form_name = form_mapping[form_id]
+    if form_id in form_mapping.keys():
+        form_name = form_mapping[form_id]
 
     if 'NVDA' in form_name:
-        return 'NVDA'
+        sign_up_channel = 'NVDA'
 
     if 'Volunteer' in form_name:
-        return 'Attended introduction meeting'
+        sign_up_channel = 'Attended introduction meeting'
 
     if 'Join' in form_name:
         if has_website and pd.to_datetime(member['created_date']).date() < datetime.date(2020, 2, 20):
-            return 'Website'
-        return 'Attended Talk'
+            sign_up_channel = 'Website'
+        else:
+            sign_up_channel = 'Attended Talk'
 
     if 'Website' in form_name:
-        return 'Website'
+        sign_up_channel = 'Website'
 
     if 'Join Affinity Group' in form_name:
-        return 'Looking for Affinity group'
+        sign_up_channel = 'Looking for Affinity group'
 
-    return 'Other'
+    return {'form_name': form_name, 'sign_up_channel': sign_up_channel, 'form_id': form_id}
 
 
 def get_member_forms(member):
-    forms = []
-
     submissions = query(url=member['_links']['osdi:submissions']['href'])
 
+    forms = []
     for submission in submissions['_embedded']['osdi:submissions']:
-        forms.append(get_form_name(submission, member))
+        forms.append(get_form(submission, member))
 
     return forms
 
@@ -83,11 +83,11 @@ def extract_data(member):
     local_group = get_local_group(member)
     municipality = get_custom_field(member, 'Municipality')
     return [{'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
-             'sign_up_channel': form} for form in forms]
+             'form_name': form['form_name'], 'sign_up_channel': form['sign_up_channel'], 'form_id': form['form_id']} for form in forms]
 
 
 def get_member_stats(start_date):
-    members = get_all_members(api_key=load_api_key())
+    members = query_all(endpoint='people')
 
     members_processed = []
 
