@@ -9,11 +9,12 @@ from local_group_support.util import query, query_all
 FORMATION_DATE = datetime.date(2018, 4, 1)
 
 
-def get_form(submission, member):
+def get_form(submission):
     form_id = submission['action_network:form_id']
     has_website = 'action_network:referrer_data' in submission.keys() and \
                   submission['action_network:referrer_data']['source'] != 'none'
     form_mapping = get_forms().set_index('identifier')['name']
+    submission_date = pd.to_datetime(submission['created_date']).date()
 
     form_name = 'Other'
     sign_up_channel = 'Other'
@@ -28,7 +29,7 @@ def get_form(submission, member):
         sign_up_channel = 'Attended introduction meeting'
 
     if 'Join' in form_name:
-        if has_website and pd.to_datetime(member['created_date']).date() < datetime.date(2020, 2, 20):
+        if has_website and submission_date < datetime.date(2020, 2, 20):
             sign_up_channel = 'Website'
         else:
             sign_up_channel = 'Attended Talk'
@@ -39,7 +40,8 @@ def get_form(submission, member):
     if 'Join Affinity Group' in form_name:
         sign_up_channel = 'Looking for Affinity group'
 
-    return {'form_name': form_name, 'sign_up_channel': sign_up_channel, 'form_id': form_id}
+    return {'form_name': form_name, 'sign_up_channel': sign_up_channel, 'form_id': form_id,
+            'submission_date': submission_date}
 
 
 def get_member_forms(member):
@@ -47,7 +49,7 @@ def get_member_forms(member):
 
     forms = []
     for submission in submissions['_embedded']['osdi:submissions']:
-        forms.append(get_form(submission, member))
+        forms.append(get_form(submission))
 
     return forms
 
@@ -83,7 +85,7 @@ def extract_data(member):
     local_group = get_local_group(member)
     municipality = get_custom_field(member, 'Municipality')
     return [{'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
-             'form_name': form['form_name'], 'sign_up_channel': form['sign_up_channel'], 'form_id': form['form_id']} for form in forms]
+             **form} for form in forms]
 
 
 def get_member_stats(start_date):
