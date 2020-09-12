@@ -67,8 +67,9 @@ def export_member_stats(start_date):
     """
 
     df = get_member_stats(start_date)
-    df_formatted = df[['sign_up_date', 'local_group', 'sign_up_channel']]
+    df_formatted = df[['sign_up_date', 'local_group', 'sign_up_channel']].sort_values('sign_up_date')
     df_formatted['sign_up_date'] = pd.to_datetime(df_formatted['sign_up_date']).dt.strftime('%Y-%m-%d')
+    df_formatted = df_formatted.fillna('')
 
     push_to_dashboard(df_formatted, range_name='Raw signup data!A:C')
 
