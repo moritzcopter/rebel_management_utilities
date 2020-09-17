@@ -1,11 +1,8 @@
 """
 TODO:
-- documentation ag sheet
+- document new functions.
 - update requirements with new packages ag sheet
-- mass update of ag's in sheet, except one-by-one, to bypass request timeout
-    both reading and writing.
 - only read new ag's from AN, instead of all AG's.
-- check if rep is in telegram is not correct (ABE)
 - deleted ag's don't dissapear frmo the sheet yet
 - AG's that updated but changed reps do not get updated properly - they're seen as two entities.
 """
