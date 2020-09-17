@@ -1,5 +1,16 @@
 """
+TODO:
+- documentation ag sheet
+- update requirements with new packages ag sheet
+- mass update of ag's in sheet, except one-by-one, to bypass request timeout
+    both reading and writing.
+- only read new ag's from AN, instead of all AG's. 
 """
+
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.errors import HttpError
 
 from telethon import TelegramClient
 from telethon.tl.functions.channels import InviteToChannelRequest
@@ -14,8 +25,11 @@ from time import sleep, localtime, time, strftime
 from converter import converter
 import requests
 import json
+import pickle
 from dotenv import load_dotenv
 import os
+import os.path
+
 
 
 regions = ["Midden", "Zuid-Oost", "Zuid-Holland", "Noord-Oost", "Noord-West"]
@@ -113,7 +127,7 @@ def get_all_ags(api_key, an_ag_endpoints):
     return ags
 
 
-async def sync_channels(api_key, links, an_ag_endpoints):
+async def sync_channels(api_key, links, an_ag_endpoints, spreadsheet_id, google):
     """
         Syncs the AG reps from Action Network with the Telegram broadcasts.
         First gets all registered AG's from AN and filters these on the
@@ -128,6 +142,9 @@ async def sync_channels(api_key, links, an_ag_endpoints):
                          invite link of the region's Telegram channel.
         - an_ag_endpoints (list) : a list of endpoints to the AN forms where
                                    AG's are registered.
+        - spreadsheet_id (string) : id of the used google spreadsheet.
+        - google (?) : api object used to make api calls.
+
     """
     ags = get_all_ags(api_key, an_ag_endpoints)
 
@@ -146,9 +163,17 @@ async def sync_channels(api_key, links, an_ag_endpoints):
 
         # Get the AGs in this region's Telegram channel.
         ags_in_channel = ["+" + user.phone for user in await client.get_participants(links[region]) if user.phone]
+        reps_in_channel = [phone for phone in ags_in_channel if phone in [ag["Phone number"] for ag in ags_registered]]
 
         # Find the people who should be added/removed.
         to_add = [ag for ag in ags_registered if ag["Phone number"] not in ags_in_channel]
+
+        # Update this AG's data in the sheet.
+        for ag in ags_registered:
+            ag["telegram"] =  ag["Phone number"] in ags_in_channel
+            ag["region"] = region
+            update_ag_on_sheet(spreadsheet_id, google, ag)
+
 
         if DEBUG:
             import pprint
@@ -163,10 +188,12 @@ async def sync_channels(api_key, links, an_ag_endpoints):
             print("     AG's with invalid phone numbers: ")
             pp.pprint([filter_ag(ag) for ag in ags_invalid_phone])
             print("\n")
+            print("Region {}: {}/{} (in Telegram/total)".format(region,len(reps_in_channel),len(ags_registered)))
 
         # Add users and log the result.
         for ag in to_add:
             try:
+                # On succes, add AG to sheet, send welcome message and log.
                 await add_user(ag, region, links)
                 logs[region]["added"].append(filter_ag(ag))
                 await send_invite(ag, region, links)
@@ -292,12 +319,137 @@ async def add_user(user, region, links):
     await client(InviteToChannelRequest(links[region], [result.users[0]]))
 
 
+def auth_google_api():
+    """
+        Authorises the google sheets api.
+
+        Returns:
+        - () : the object used to make API calls.
+    """
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    creds = None
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', ['https://www.googleapis.com/auth/spreadsheets'])
+            creds = flow.run_local_server(port=0)
+
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    return build('sheets', 'v4', credentials=creds).spreadsheets()
+
+
+def update_ag_on_sheet(spreadsheet_id, google, ag):
+    """
+        Writes the given AG to the sheet. First checks if the AG is already
+        on there, if so, updates the data. If not, adds the AG at the first
+        empty row.
+    """
+    try:
+        all_data = read_sheet(spreadsheet_id, google)
+    except HttpError as e:
+        print("Too many requests to read sheet - waiting 100 sec: {}".format(e))
+        sleep(100)
+        return
+
+
+    # Fill in empty fields when there's no value prevent errors.
+    fields = ["AG_name", "region", "telegram", "Municipality", "rep_name",
+    "Phone number", "AG_size", "AG_n_arrestables", "AG_regen_phone", "AG_comments"]
+    for field in fields:
+        if not field in ag:
+            ag[field] = ""
+
+    # Reset the standard name of 'rebel'.
+    if ag["rep_name"] == "rebel":
+        ag["rep-name"] = ""
+
+    # Format data for request.
+    format_ag = [[
+        ag["AG_name"], ag["region"], ag["telegram"], ag["Municipality"], ag["rep_name"],
+        ag["Phone number"], ag["AG_size"], ag["AG_n_arrestables"],
+        ag["AG_regen_phone"], ag["AG_comments"], strftime("%b %d %Y %H:%M:%S", localtime(time()))
+    ]]
+
+    # Get the row to write to (either the row with exisitng data on this AG, or
+    # the first empty row).
+    row = len(all_data) + 1 # First empty row.
+    for i in range(len(all_data)):
+        if ag["AG_name"] == all_data[i][0]:
+            row = i + 1
+
+    try:
+        write_row_to_sheet(spreadsheet_id, google, row, format_ag)
+    except HttpError as e:
+        print("Too many requests to write to sheet - waiting 100 sec: {}".format(e))
+        sleep(100)
+        return
+
+
+
+
+
+def read_sheet(spreadsheet_id, google, row=0):
+    """
+        Returns the content of the entire sheet. If a row number above 0 is
+        specified, only returns the contents of that row.
+    """
+    if row > 0:
+        return google.values().get(
+            spreadsheetId=spreadsheet_id,
+            range="Synced-Action-Network-data!A{}".format(row),
+        ).execute().get('values', [])
+    return google.values().get(
+        spreadsheetId=spreadsheet_id,
+        range="Synced-Action-Network-data".format(row),
+    ).execute().get('values', [])
+
+
+def write_row_to_sheet(spreadsheet_id, google, row, data):
+    """
+        Writes the given data to the used google spreadsheet.
+
+        Params:
+        - spreadsheet_id (string) : id of the used google spreadsheet.
+        - google (?) : api object used to make api calls.
+        - row (string) : number of the row to which to write.
+        - data (list of lists) : inner lists contains entries which will be
+                                 written to individual cells in the row, starting
+                                 at index 1.
+    """
+    range = "Synced-Action-Network-data!A{}".format(row)
+    body = {
+        "range": range,
+        "majorDimension": "ROWS",
+        "values": data
+    }
+    google.values().update(
+        spreadsheetId=spreadsheet_id,
+        range=range,
+        valueInputOption="RAW",
+        body=body,
+    ).execute()
+
+
+
 async def main():
     """
         Starts the sync loop. The loop repeats every five minutes.
         Sends a log of the progress to the admins each day.
     """
     # Start-up.
+    google = auth_google_api()
     await client.start()
     current_day = int(strftime("%j", localtime(time()))) - 1
 
@@ -306,13 +458,14 @@ async def main():
     links = json.loads(os.getenv("links"))
     super_admins = json.loads(os.getenv("super_admins"))
     an_ag_endpoints = json.loads(os.getenv("an_ag_endpoints"))
+    spreadsheet_id = os.getenv("spreadsheet")
 
     # This sets up the log dict structure.
     clear_logs()
 
     # Sync the channels.
     while True:
-        await sync_channels(api_key, links, an_ag_endpoints)
+        await sync_channels(api_key, links, an_ag_endpoints, spreadsheet_id, google)
 
         # If it's a new day, log.
         new_day = int(strftime("%j", localtime(time())))
@@ -321,8 +474,8 @@ async def main():
             await send_log(super_admins)
             clear_logs()
 
-        # Loop every 5 minutes.
-        sleep(5 * 60)
+        # Loop every 10 minutes.
+        sleep(10 * 60)
 
 
 # Load environment variables.
