@@ -7,6 +7,7 @@ TODO:
 - only read new ag's from AN, instead of all AG's.
 - check if rep is in telegram is not correct (ABE)
 - deleted ag's don't dissapear frmo the sheet yet
+- AG's that updated but changed reps do not get updated properly - they're seen as two entities.
 """
 
 from googleapiclient.discovery import build
@@ -33,9 +34,8 @@ import os
 import os.path
 
 
-
 regions = ["Midden", "Zuid-Oost", "Zuid-Holland", "Noord-Oost", "Noord-West"]
-logs = {}
+logs = {"added" : [], "no_telegram" : [], "error" : [], "update_number" : []}
 DEBUG = False # Is this good practice??
 
 
@@ -149,68 +149,48 @@ async def sync_channels(api_key, links, an_ag_endpoints, spreadsheet_id, google)
 
     """
     ags = get_all_ags(api_key, an_ag_endpoints)
+    ags_formatted = []
+    ags_in_telegram_channel = []
+    ags_not_in_telegram_channel = []
 
-    for region in regions:
-        # Get the AGs which are this region.
-        ags_registered = [ag for ag in ags if converter("municipality", "region", ag["Municipality"]) == region]
-
-        # Parse these AGs' phonenumbers - remove AGs with invalid numbers.
-        ags_invalid_phone = []
-        for ag in ags_registered:
-            if convert_phone_number(ag["Phone number"]): # Valid number
-                ag["Phone number"] = convert_phone_number(ag["Phone number"])
-            else: # Invalid number
-                ags_registered.remove(ag)
-                ags_invalid_phone.append(ag)
-
-        # Get the AGs in this region's Telegram channel.
-        ags_in_channel = ["+" + user.phone for user in await client.get_participants(links[region]) if user.phone]
-        reps_in_channel = [phone for phone in ags_in_channel if phone in [ag["Phone number"] for ag in ags_registered]]
-
-        print(ags_in_channel)
-
-        # Find the people who should be added/removed.
-        to_add = [ag for ag in ags_registered if ag["Phone number"] not in reps_in_channel]
-
-        # Update this AG's data in the sheet.
-        for ag in ags_registered:
-            ag["telegram"] =  ag["Phone number"] in ags_in_channel
-            ag["region"] = region
-            update_ag_on_sheet(spreadsheet_id, google, ag)
+    # Format list of AG's.
+    for ag in ags:
+        ag["region"] = converter("municipality", "region", ag["Municipality"])
+        if not ag["region"]:
+            continue
+        ag["telegram"] = True # Will be set to False if AG is not added to channel after this function finishes.
+        ag["Phone number"] = convert_phone_number(ag["Phone number"])
+        if ag["Phone number"]: # Becomes None if number is invalid.
+            ags_formatted.append(ag)
 
 
-        if DEBUG:
-            import pprint
-            pp = pprint.PrettyPrinter(indent=4)
-            print("Region: {}".format(region))
-            print("     AG's registed in AN: ")
-            pp.pprint([filter_ag(ag) for ag in ags_registered])
-            print("     AG's in telegram: ")
-            pp.pprint([ag for ag in ags_in_channel])
-            print("     AG's that should be added: ")
-            pp.pprint([filter_ag(ag) for ag in to_add])
-            print("     AG's with invalid phone numbers: ")
-            pp.pprint([filter_ag(ag) for ag in ags_invalid_phone])
-            print("\n")
-            print("Region {}: {}/{} (in Telegram/total)".format(region,len(reps_in_channel),len(ags_registered)))
+    # Check which formatted AG's are already in telegram channels.
+    ags_in_telegram_channel = [
+        ag
+        for region in regions
+        for user in await client.get_participants(links[region]) if user.phone
+        for ag in ags_formatted if user.phone in ag["Phone number"]
+    ]
 
-        # Add users and log the result.
-        for ag in to_add:
-            try:
-                # On succes, add AG to sheet, send welcome message and log.
-                await add_user(ag, region, links)
-                logs[region]["added"].append(filter_ag(ag))
-                await send_invite(ag, region, links)
-            except IndexError: # User doesn't have telegram.
-                if not ag in logs[region]["no_telegram"]:
-                    logs[region]["no_telegram"].append(filter_ag(ag))
-            except Exception as e:
-                if not ag in logs[region]["error"]:
-                    logs[region]["error"].append((filter_ag(ag), e))
+    # Add reps to telegram channel.
+    for ag in [ag for ag in ags_formatted if ag not in ags_in_telegram_channel]:
+        # On succesful add, send welcome message and log.
+        try:
+            await add_user(ag, links)
+            # logs["added"].append(filter_ag(ag))
+            await send_invite(ag, links)
+        # User doesn't have telegram.
+        except IndexError:
+            ag["telegram"] = False
+            # if not ag in logs["no_telegram"]:
+                # logs["no_telegram"].append(filter_ag(ag))
+        except Exception as e:
+            print("Error when adding rep: {}".format(e))
+            # if not ag in logs["error"]:
+                # logs["error"].append((filter_ag(ag), e))
 
-        # Log invalid phone numbers.
-        for ag in ags_invalid_phone:
-            logs[region]["update_number"].append(filter(ag))
+    # Update the google sheet.
+    update_ags_on_sheet(spreadsheet_id, google, ags_formatted)
 
 
 def filter_ag(ag):
@@ -254,23 +234,14 @@ async def send_log(admins):
         for region in regions:
             message = "\n"
             message += region
-            message += "\n      Toegevoegd: {}".format(logs[region]["added"])
-            message += "\n      Geen telegram: {}".format(logs[region]["no_telegram"])
-            message += "\n      Error bij toevoegen: {}".format(logs[region]["error"])
-            message += "\n      Update nummer: {}".format(logs[region]["update_number"])
+            message += "\n      Toegevoegd: {}".format(logs["added"])
+            message += "\n      Geen telegram: {}".format(logs["no_telegram"])
+            message += "\n      Error bij toevoegen: {}".format(logs["error"])
+            message += "\n      Update nummer: {}".format(logs["update_number"])
             await client.send_message(admin, message)
 
 
-def clear_logs():
-    """
-        Clears the 'logs' gloval, and resets it to an empty dict of dicts with
-        the used format.
-    """
-    for region in regions:
-        logs[region] = {"added" : [], "no_telegram" : [], "error" : [], "update_number" : []}
-
-
-async def send_invite(user, region, links):
+async def send_invite(user, links):
     """
         Sends a bilingual message on Telegram to the specified user, telling them
         they've been added to their region's Telegram channel. The message also
@@ -280,20 +251,19 @@ async def send_invite(user, region, links):
 
         Params:
         - user (dict) : a dictionary of the custom fields of this user on AN.
-        - region (str) : the name of the region this person lives in.
         - links (dict) : a dictionary which maps the names a region to the
                          invite link of the region's Telegram channel.
     """
     # Format the messages.
-    message = "Beste {}, \nJij staat in Action Network geregistreerd als de afgevaardigte/representative van Extinction Rebellion affiniteitsgroep {}. Zojuist ben je toegevoegd aan het officiële telegram kanaal voor affiniteitsgroepen in regio {}. Dit kanaal houdt je up-to-date over alle acties in je regio, en geeft andere informatie die je affiniteitsgroep helpt bij het actie voeren. Door de informatie die hier langs komt in de gaten te houden, en door te geven aan je affiniteitsgroep, weet je alles wat nodig is om in actie te komen met Extinction Rebellion! \nMeer informatie over de kanalen vind je hier: https://xrb.link/hn8LeH2X3 . Mochten ook andere leden van je affiniteitsgroep in het kanaal willen, dan is hier een link waarmee ze toegang krijgen: {} . Mocht jullie groep in meerdere regio's actief zijn, stuur mij dan even een berichtje - ik kan je dan ook in de kanelen voor andere regio's plaatsen. Voor overige vragen kun je mij hier ook via Telegram contacteren.\nLove & Rage Martijn van Extinction Rebellion".format(user["rep_name"], user["AG_name"], region, links[region])
-    message_en = "Dear {},\nYou're registered as the representative of your Extinction Rebellion affinity group {}. If all went well, you were just added to the official information channel for affinity groups in your region: {}. This channel will keep you up to date on all actions in your region, as well as other information that is useful to support your affinity group. By keeping an eye on the information that comes through here, and passing it on to your affinity group, you will know everything you need to come into action with XR!\nMore information about the channels can be found here: https://xrb.link/hn8LeH2X3   If other members of your affinity group also wish to join the channel, here's a link to give them access: {} . If your affinity group is active in mulitple reagions, please send me a message, and I will add you to the channels for the other regions as well. You can also reach me here on telegram for any addition questions!\nLove & Rage Martijn from Extinction Rebellion".format(user["rep_name"], user["AG_name"], region, links[region])
+    message = "Beste {}, \nJij staat in Action Network geregistreerd als de afgevaardigte/representative van Extinction Rebellion affiniteitsgroep {}. Zojuist ben je toegevoegd aan het officiële telegram kanaal voor affiniteitsgroepen in regio {}. Dit kanaal houdt je up-to-date over alle acties in je regio, en geeft andere informatie die je affiniteitsgroep helpt bij het actie voeren. Door de informatie die hier langs komt in de gaten te houden, en door te geven aan je affiniteitsgroep, weet je alles wat nodig is om in actie te komen met Extinction Rebellion! \nMeer informatie over de kanalen vind je hier: https://xrb.link/hn8LeH2X3 . Mochten ook andere leden van je affiniteitsgroep in het kanaal willen, dan is hier een link waarmee ze toegang krijgen: {} . Mocht jullie groep in meerdere regio's actief zijn, stuur mij dan even een berichtje - ik kan je dan ook in de kanelen voor andere regio's plaatsen. Voor overige vragen kun je mij hier ook via Telegram contacteren.\nLove & Rage Martijn van Extinction Rebellion".format(user["rep_name"], user["AG_name"], user["region"], links[user["region"]])
+    message_en = "Dear {},\nYou're registered as the representative of your Extinction Rebellion affinity group {}. If all went well, you were just added to the official information channel for affinity groups in your region: {}. This channel will keep you up to date on all actions in your region, as well as other information that is useful to support your affinity group. By keeping an eye on the information that comes through here, and passing it on to your affinity group, you will know everything you need to come into action with XR!\nMore information about the channels can be found here: https://xrb.link/hn8LeH2X3   If other members of your affinity group also wish to join the channel, here's a link to give them access: {} . If your affinity group is active in mulitple reagions, please send me a message, and I will add you to the channels for the other regions as well. You can also reach me here on telegram for any addition questions!\nLove & Rage Martijn from Extinction Rebellion".format(user["rep_name"], user["AG_name"], user["region"], links[user["region"]])
 
     # Send them.
     await client.send_message(user["Phone number"], message_en)
     await client.send_message(user["Phone number"], message)
 
 
-async def add_user(user, region, links):
+async def add_user(user, links):
     """
         Adds the specified user to the telegram channel of the specified region.
         First adds the user as a contact; this gives permission to add them to
@@ -303,12 +273,11 @@ async def add_user(user, region, links):
 
         Params:
         - user (dict) : a dictionary of the custom fields of this user on AN.
-        - region (str) : the name of the region this person lives in.
         - links (dict) : a dictionary which maps the names a region to the
                          invite link of the region's Telegram channel.
     """
     # Add user to contact. This allows us to add them to the channel
-    contact = InputPhoneContact(client_id=0, phone=user["Phone number"], first_name=user["rep_name"], last_name="xr_ag_rep_{}".format(region))
+    contact = InputPhoneContact(client_id=0, phone=user["Phone number"], first_name=user["rep_name"], last_name="xr_ag_rep_{}".format(user["region"]))
 
     # There's strong constraints on making this request.
     while True:
@@ -320,7 +289,7 @@ async def add_user(user, region, links):
             sleep(60)
 
     # Add them to the correct channel.
-    await client(InviteToChannelRequest(links[region], [result.users[0]]))
+    await client(InviteToChannelRequest(links[user["region"]], [result.users[0]]))
 
 
 def auth_google_api():
@@ -354,54 +323,61 @@ def auth_google_api():
     return build('sheets', 'v4', credentials=creds).spreadsheets()
 
 
-def update_ag_on_sheet(spreadsheet_id, google, ag):
+def update_ags_on_sheet(spreadsheet_id, google, ags):
     """
-        Writes the given AG to the sheet. First checks if the AG is already
-        on there, if so, updates the data. If not, adds the AG at the first
-        empty row.
+        Writes the given AG's to the sheet. First checks if an AG is already
+        on the sheet, if so, updates the data on that row. If not, adds the AG
+        at the first empty row.
+
+        Params:
+        - .... TODO
     """
+    # Get current sheet.
     try:
-        all_data = read_sheet(spreadsheet_id, google)
+        current_sheet_data = read_sheet(spreadsheet_id, google)[2:]
     except HttpError as e:
         print("Too many requests to read sheet - waiting 100 sec: {}".format(e))
         sleep(100)
         return
 
-
-    # Fill in empty fields when there's no value prevent errors.
     fields = ["AG_name", "region", "telegram", "Municipality", "rep_name",
-    "Phone number", "AG_size", "AG_n_arrestables", "AG_regen_phone", "AG_comments"]
-    for field in fields:
-        if not field in ag:
-            ag[field] = ""
+              "Phone number", "AG_size", "AG_n_arrestables", "AG_regen_phone",
+              "AG_comments"]
+    next_row = len(current_sheet_data) + 1
+    print(current_sheet_data)
 
-    # Reset the standard name of 'rebel'.
-    if ag["rep_name"] == "rebel":
-        ag["rep-name"] = ""
+    # Prepare each AG for writing.
+    for ag in ags:
+        # Fill in empty fields when there's no value prevent errors.
+        for field in fields:
+            if not field in ag:
+                ag[field] = ""
+        if ag["rep_name"] == "rebel":
+            ag["rep_name"] = ""
 
-    # Format data for request.
-    format_ag = [[
-        ag["AG_name"], ag["region"], ag["telegram"], ag["Municipality"], ag["rep_name"],
-        ag["Phone number"], ag["AG_size"], ag["AG_n_arrestables"],
-        ag["AG_regen_phone"], ag["AG_comments"], strftime("%b %d %Y %H:%M:%S", localtime(time()))
-    ]]
+        # Format data for request.
+        ag_data = [
+            ag["AG_name"], ag["region"], ag["telegram"], ag["Municipality"], ag["rep_name"],
+            ag["Phone number"], ag["AG_size"], ag["AG_n_arrestables"],
+            ag["AG_regen_phone"], ag["AG_comments"], strftime("%b %d %Y %H:%M:%S", localtime(time()))
+        ]
 
-    # Get the row to write to (either the row with exisitng data on this AG, or
-    # the first empty row).
-    row = len(all_data) + 1 # First empty row.
-    for i in range(len(all_data)):
-        if ag["AG_name"] == all_data[i][0]:
-            row = i + 1
+        # Place new AG's on a new row; update existing AG's on their existing row.
+        ag_already_in_sheet = False
+        for i in range(len(current_sheet_data)):
+            if ag["AG_name"] == current_sheet_data[i][0]:
+                current_sheet_data[i] = ag_data
+                ag_already_in_sheet = True
+                break
+        if not ag_already_in_sheet:
+            current_sheet_data.append(ag_data)
 
     try:
-        write_row_to_sheet(spreadsheet_id, google, row, format_ag)
+        write_to_sheet(spreadsheet_id, google, current_sheet_data)
     except HttpError as e:
         print("Too many requests to write to sheet - waiting 100 sec: {}".format(e))
         sleep(100)
         return
-
-
-
 
 
 def read_sheet(spreadsheet_id, google, row=0):
@@ -420,17 +396,18 @@ def read_sheet(spreadsheet_id, google, row=0):
     ).execute().get('values', [])
 
 
-def write_row_to_sheet(spreadsheet_id, google, row, data):
+def write_to_sheet(spreadsheet_id, google, data, row=3):
     """
         Writes the given data to the used google spreadsheet.
 
         Params:
         - spreadsheet_id (string) : id of the used google spreadsheet.
         - google (?) : api object used to make api calls.
-        - row (string) : number of the row to which to write.
         - data (list of lists) : inner lists contains entries which will be
                                  written to individual cells in the row, starting
                                  at index 1.
+        - row (int) : number of the row to which to start writing. Defaults at 3.
+
     """
     range = "Synced-Action-Network-data!A{}".format(row)
     body = {
@@ -464,19 +441,15 @@ async def main():
     an_ag_endpoints = json.loads(os.getenv("an_ag_endpoints"))
     spreadsheet_id = os.getenv("spreadsheet")
 
-    # This sets up the log dict structure.
-    clear_logs()
-
     # Sync the channels.
     while True:
         await sync_channels(api_key, links, an_ag_endpoints, spreadsheet_id, google)
 
         # If it's a new day, log.
-        new_day = int(strftime("%j", localtime(time())))
-        if new_day != current_day:
-            current_day = new_day
-            await send_log(super_admins)
-            clear_logs()
+        # new_day = int(strftime("%j", localtime(time())))
+        # if new_day != current_day:
+        #     current_day = new_day
+        #     await send_log(super_admins)
 
         # Loop every 10 minutes.
         sleep(10 * 60)
