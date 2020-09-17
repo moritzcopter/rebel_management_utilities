@@ -4,7 +4,9 @@ TODO:
 - update requirements with new packages ag sheet
 - mass update of ag's in sheet, except one-by-one, to bypass request timeout
     both reading and writing.
-- only read new ag's from AN, instead of all AG's. 
+- only read new ag's from AN, instead of all AG's.
+- check if rep is in telegram is not correct (ABE)
+- deleted ag's don't dissapear frmo the sheet yet
 """
 
 from googleapiclient.discovery import build
@@ -165,8 +167,10 @@ async def sync_channels(api_key, links, an_ag_endpoints, spreadsheet_id, google)
         ags_in_channel = ["+" + user.phone for user in await client.get_participants(links[region]) if user.phone]
         reps_in_channel = [phone for phone in ags_in_channel if phone in [ag["Phone number"] for ag in ags_registered]]
 
+        print(ags_in_channel)
+
         # Find the people who should be added/removed.
-        to_add = [ag for ag in ags_registered if ag["Phone number"] not in ags_in_channel]
+        to_add = [ag for ag in ags_registered if ag["Phone number"] not in reps_in_channel]
 
         # Update this AG's data in the sheet.
         for ag in ags_registered:
