@@ -5,9 +5,12 @@ from local_group_support.util import query_all
 
 
 def get_local_group(row):
-    for local_group in get_config()['local_groups']:
-        if local_group in row['from']:
-            return local_group
+    sender = row['from']
+
+    if type(sender) == str:
+        for local_group in get_config()['local_groups']:
+            if local_group in sender:
+                return local_group
     return 'Other'
 
 
