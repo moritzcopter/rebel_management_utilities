@@ -77,15 +77,24 @@ def get_local_group(member):
     return local_group
 
 
+def get_email_address(member):
+    for email in member['email_addresses']:
+        if email['primary']:
+            return email['address']
+
+
 def extract_data(member):
+    name = member['given_name']
+    email_address = get_email_address(member)
+    languages_spoken = member['languages_spoken']
     sign_up_date = pd.to_datetime(member['created_date']).date()
     if sign_up_date < FORMATION_DATE:
         sign_up_date = pd.NaT
     forms = get_member_forms(member)
     local_group = get_local_group(member)
     municipality = get_custom_field(member, 'Municipality')
-    return [{'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
-             **form} for form in forms]
+    return [{'name': name, 'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
+             'languages_spoken': languages_spoken, 'email_address': email_address, **form} for form in forms]
 
 
 def get_member_stats(start_date):
