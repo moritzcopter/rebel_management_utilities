@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 
 import requests
 from dotenv import load_dotenv
@@ -16,6 +17,7 @@ def load_api_key():
     return key
 
 
+@lru_cache(maxsize=128)
 def query(endpoint=None, url=None):
     if url is None:
         url = API_URL + endpoint
@@ -29,6 +31,7 @@ def query(endpoint=None, url=None):
     return response.json()
 
 
+@lru_cache(maxsize=128)
 def query_all(endpoint):
     responses = []
     url = API_URL + endpoint

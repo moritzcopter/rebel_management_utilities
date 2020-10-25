@@ -1,6 +1,6 @@
 import pandas as pd
 
-from analysis_scripts.util import query_all
+from local_group_support.util import query_all
 
 
 def get_forms():
