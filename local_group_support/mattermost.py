@@ -3,6 +3,7 @@ import os
 
 import requests
 from dotenv import load_dotenv
+from local_group_support.members import get_member_stats
 
 
 BASE_URL = 'https://organise.earth/'
@@ -35,8 +36,6 @@ def get_mattermost_user(email):
 
 
 if __name__ == "__main__":
-    from local_group_support.members import get_member_stats
-
     start_date = datetime.date.today() - datetime.timedelta(days=30)
     df = get_member_stats(start_date)
     df_grouped = df.groupby('local_group').size()
