@@ -4,6 +4,7 @@ import pandas as pd
 
 from local_group_support.config.config import get_config
 from local_group_support.forms import get_forms
+from local_group_support.mattermost import get_mattermost_user
 from local_group_support.util import query, query_all
 
 FORMATION_DATE = datetime.date(2018, 4, 1)
@@ -83,9 +84,18 @@ def get_email_address(member):
             return email['address']
 
 
+def get_phone_number(member):
+    try:
+        return member['custom_fields']['Phone number']
+    except KeyError:
+        return
+
+
 def extract_data(member):
     name = member['given_name']
     email_address = get_email_address(member)
+    phone_number = get_phone_number(member)
+    mattermost_username = get_mattermost_user(email_address)['username']
     languages_spoken = member['languages_spoken']
     sign_up_date = pd.to_datetime(member['created_date']).date()
     if sign_up_date < FORMATION_DATE:
@@ -94,7 +104,8 @@ def extract_data(member):
     local_group = get_local_group(member)
     municipality = get_custom_field(member, 'Municipality')
     return [{'name': name, 'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
-             'languages_spoken': languages_spoken, 'email_address': email_address, **form} for form in forms]
+             'languages_spoken': languages_spoken, 'email_address': email_address,
+             'mattermost_username': mattermost_username, 'phone_number': phone_number ** form} for form in forms]
 
 
 def get_member_stats(start_date):
