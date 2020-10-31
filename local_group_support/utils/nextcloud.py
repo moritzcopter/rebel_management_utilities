@@ -37,7 +37,7 @@ def write_to_spreadsheet(url, data):
         with open('tmp.xlsx', 'wb') as f:
             f.write(response.content)
 
-        append_df_to_excel('tmp.xlsx', data)
+        append_df_to_excel('tmp.xlsx', data, header=False)
     else:
         data.to_excel('tmp.xlsx')
 

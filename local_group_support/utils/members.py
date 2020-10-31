@@ -102,7 +102,7 @@ def extract_data(member):
     municipality = get_custom_field(member, 'Municipality')
     return [{'name': name, 'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
              'languages_spoken': languages_spoken, 'email_address': email_address,
-             'phone_number': phone_number ** form} for form in forms]
+             'phone_number': phone_number, **form} for form in forms]
 
 
 def get_member_stats(start_date):
