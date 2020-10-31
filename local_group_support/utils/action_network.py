@@ -1,9 +1,9 @@
-import pandas as pd
 import os
-from functools import lru_cache
 
+import pandas as pd
 import requests
 from dotenv import load_dotenv
+from filecache import filecache
 
 from local_group_support.config.config import get_config
 
@@ -20,7 +20,7 @@ def load_api_key():
     return key
 
 
-@lru_cache(maxsize=128)
+@filecache(24 * 60 * 60)
 def query(endpoint=None, url=None):
     if url is None:
         url = API_URL + endpoint
@@ -34,7 +34,7 @@ def query(endpoint=None, url=None):
     return response.json()
 
 
-@lru_cache(maxsize=128)
+@filecache(24 * 60 * 60)
 def query_all(endpoint):
     responses = []
     url = API_URL + endpoint
