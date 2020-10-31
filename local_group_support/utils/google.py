@@ -1,21 +1,18 @@
 from __future__ import print_function
 
-import datetime
 import pickle
 from functools import lru_cache
 
+import pandas as pd
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from local_group_support.members import get_member_stats
-from local_group_support.messages import get_messages
-
-import pandas as pd
+from local_group_support.utils.action_network import get_messages
+from local_group_support.utils.members import get_member_stats
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1LrSjkBQqZsIzGKs25O7FC9pHFoOEeRuAAs3IL1NEE8g'
-UPDATE_DATE_RANGE_NAME = 'Local group dashboard!K28:K28'
 
 
 @lru_cache(maxsize=128)
@@ -90,13 +87,3 @@ def export_messages_stats(start_date):
     df_formatted = df_formatted.fillna(0.0)
 
     push_to_dashboard(df_formatted, range_name='Raw email data!A:K')
-
-
-if __name__ == "__main__":
-    export_messages_stats(start_date=datetime.date(2017, 1, 1))
-
-    result = pull_from_dashboard(range_name=UPDATE_DATE_RANGE_NAME)
-    last_update_date = pd.to_datetime(result[0][0]).date()
-
-    export_member_stats(start_date=last_update_date)
-    export_messages_stats(start_date=last_update_date)
