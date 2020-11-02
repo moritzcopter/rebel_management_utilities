@@ -8,8 +8,8 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from local_group_support.utils.action_network import get_messages
-from local_group_support.utils.members import get_member_stats
+from rebel_management_utilities.action_network import get_messages
+from rebel_management_utilities.members import get_member_stats
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1LrSjkBQqZsIzGKs25O7FC9pHFoOEeRuAAs3IL1NEE8g'

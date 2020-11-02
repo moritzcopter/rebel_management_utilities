@@ -1,6 +1,6 @@
 import datetime
 
-from local_group_support.utils.members import get_member_stats
+from rebel_management_utilities.members import get_member_stats
 from local_group_support.utils.mattermost import post_to_channel
 
 if __name__ == "__main__":

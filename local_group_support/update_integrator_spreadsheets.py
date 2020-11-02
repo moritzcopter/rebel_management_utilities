@@ -1,6 +1,6 @@
 import datetime
 
-from local_group_support.utils.members import get_member_stats
+from rebel_management_utilities.members import get_member_stats
 from local_group_support.utils.nextcloud import get_nextcloud_user, BASE_URL, INTEGRATION_DIRECTORY, \
     write_to_spreadsheet
 
