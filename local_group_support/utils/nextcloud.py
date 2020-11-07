@@ -29,7 +29,7 @@ def get_nextcloud_password():
     return key
 
 
-def write_to_spreadsheet(url, data):
+def write_to_spreadsheet(url, data, deduplicate_column=None):
     auth = (get_nextcloud_user(), get_nextcloud_password())
     response = requests.get(url, auth=auth)
 
@@ -37,7 +37,7 @@ def write_to_spreadsheet(url, data):
         with open('tmp.xlsx', 'wb') as f:
             f.write(response.content)
 
-        append_df_to_excel('tmp.xlsx', data, header=False)
+        append_df_to_excel('tmp.xlsx', data, deduplicate_column=deduplicate_column, header=False)
     else:
         data.to_excel('tmp.xlsx')
 

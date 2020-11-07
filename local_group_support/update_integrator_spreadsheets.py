@@ -12,5 +12,6 @@ if __name__ == "__main__":
         filename = f'New rebels {local_group}.xlsx'
         username = get_nextcloud_user()
         url = BASE_URL + username + INTEGRATION_DIRECTORY + filename
-        write_to_spreadsheet(url, df_grouped[
-            ['submission_date', 'municipality', 'sign_up_channel']].set_index('submission_date'))
+        df_formatted = df_grouped[
+            ['submission_date', 'municipality', 'sign_up_channel']].set_index('submission_date')
+        write_to_spreadsheet(url, df_formatted, deduplicate_column='email_address')
