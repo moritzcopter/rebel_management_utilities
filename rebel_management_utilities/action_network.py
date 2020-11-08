@@ -46,7 +46,7 @@ def query_all(endpoint):
         if status_code != 200:
             raise requests.HTTPError(response=response)
         res = response.json()
-        content = res['_embedded']['osdi:' + endpoint]
+        content = next(iter(res['_embedded'].values()))
         responses.extend(content)
         try:
             url = res['_links']['next']['href']
@@ -103,13 +103,3 @@ def get_messages():
     df['local_group'] = df.apply(get_local_group, axis=1)
     df['date'] = pd.to_datetime(df['created_date']).dt.date
     return df
-
-
-def get_taggings_per_tag():
-    tags = query_all(endpoint='tags')
-    taggings_by_tag = {}
-
-    for tag in tags:
-        taggings_by_tag[tag['name']] = query_all(endpoint='taggings', url=tag['_links']['osdi:taggings']['href'])
-
-    return taggings_by_tag

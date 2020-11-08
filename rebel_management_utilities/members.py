@@ -89,6 +89,17 @@ def get_phone_number(member):
         return
 
 
+def get_member_taggings(member):
+    taggings = query(url=member['_links']['osdi:taggings']['href'])
+    tag_names = []
+
+    for tagging in taggings['_embedded']['osdi:taggings']:
+        tag = query(url=tagging['_links']['osdi:tag']['href'])
+        tag_names.append(tag['name'])
+
+    return tag_names
+
+
 def extract_data(member):
     name = member['given_name']
     email_address = get_email_address(member)
@@ -100,8 +111,10 @@ def extract_data(member):
     forms = get_member_forms(member)
     local_group = get_local_group(member)
     municipality = get_custom_field(member, 'Municipality')
+    taggings = get_member_taggings(member)
     return [{'name': name, 'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
              'languages_spoken': languages_spoken, 'email_address': email_address,
+             'taggings': taggings,
              'phone_number': phone_number, **form} for form in forms]
 
 
