@@ -1,11 +1,9 @@
 import datetime
 
 from rebel_management_utilities.members import get_member_stats
-from local_group_support.utils.mattermost import post_to_channel
+from local_group_support.utils.mattermost import post_to_channel, LOCAL_GROUP_INTEGRATORS_CHANNEL_ID
 
 if __name__ == "__main__":
-    LOCAL_GROUP_INTEGRATORS_CHANNEL = 'nqs4h6iyrpr3mx4jjy9xqk8i3o'
-
     start_date = datetime.date.today() - datetime.timedelta(days=30)
     df = get_member_stats(start_date)
     df_grouped = df.groupby('local_group').size()
@@ -17,4 +15,4 @@ if __name__ == "__main__":
 
     message = message.format(total_signups=total_signups, signup_table=df_grouped.to_markdown(index=False))
 
-    post_to_channel(LOCAL_GROUP_INTEGRATORS_CHANNEL, message)
+    post_to_channel(LOCAL_GROUP_INTEGRATORS_CHANNEL_ID, message)
