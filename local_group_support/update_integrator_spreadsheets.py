@@ -13,7 +13,7 @@ if __name__ == "__main__":
         try:
             filename = f'New rebels {local_group}.xlsx'
             username = get_nextcloud_user()
-            local_group_safe = local_group.replace('/', '+')
+            local_group_safe = local_group.replace('/', '').replace(' ', '').replace('â', 'a')
             url = BASE_URL + username + INTEGRATION_DIRECTORY + local_group_safe + '/' + filename
             df_formatted = df_grouped[
                 ['name', 'email_address', 'phone_number', 'submission_date', 'municipality', 'sign_up_channel',
