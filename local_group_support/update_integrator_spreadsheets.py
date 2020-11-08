@@ -13,11 +13,14 @@ if __name__ == "__main__":
         for local_group, df_grouped in df.groupby('local_group'):
             filename = f'New rebels {local_group}.xlsx'
             username = get_nextcloud_user()
-            url = BASE_URL + username + INTEGRATION_DIRECTORY + filename
+            local_group_safe = local_group.replace('/', '+')
+            url = BASE_URL + username + INTEGRATION_DIRECTORY + local_group_safe + '/' + filename
             df_formatted = df_grouped[
-                ['submission_date', 'municipality', 'sign_up_channel']].set_index('submission_date')
-            write_to_spreadsheet(url, df_formatted, deduplicate_column='submission_date')
+                ['name', 'email_address', 'phone_number', 'submission_date', 'municipality', 'sign_up_channel',
+                 'taggings']].set_index('submission_date').sort_index()
+            df_formatted['next_action'] = 'Contact'
+            write_to_spreadsheet(url, df_formatted, deduplicate_column='email_address')
 
         post_to_channel(LOGGING_CHANNEL_ID, 'Successfully updated integrator spreadsheets')
     except Exception as e:
-        post_to_channel(LOGGING_CHANNEL_ID, f'Failed to update integrator spreadsheet - {e}')
+        post_to_channel(LOGGING_CHANNEL_ID, f'@all Failed to update integrator spreadsheet - {e}')

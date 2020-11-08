@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from local_group_support.utils.excel import append_df_to_excel
 
 BASE_URL = 'https://cloud.extinctionrebellion.nl/remote.php/dav/files/'
-INTEGRATION_DIRECTORY = '/CloudXRNL/Circles/Integration_Home/Integration_Internal/'
+INTEGRATION_DIRECTORY = '/CloudXRNL/AppSpecific/Integrators_AN_Home/Integrators_FromLGs/'
 
 
 def get_nextcloud_user():
