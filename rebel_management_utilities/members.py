@@ -53,6 +53,10 @@ def get_member_forms(member):
     return forms
 
 
+def get_field(member, field):
+    return member[field] if field in member else None
+
+
 def get_custom_field(member, field):
     value = None
     if field in member['custom_fields']:
@@ -101,26 +105,22 @@ def get_member_taggings(member):
 
 
 def extract_data(member):
-    try:
-        name = member['given_name']
-        email_address = get_email_address(member)
-        phone_number = get_phone_number(member)
-        languages_spoken = member['languages_spoken']
-        sign_up_date = pd.to_datetime(member['created_date']).date()
-        if sign_up_date < FORMATION_DATE:
-            sign_up_date = pd.NaT
-        forms = get_member_forms(member)
-        local_group = get_local_group(member)
-        municipality = get_custom_field(member, 'Municipality')
-        taggings = get_member_taggings(member)
-        comments = get_custom_field(member, 'comments')
-        return [{'name': name, 'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
-                 'languages_spoken': languages_spoken, 'email_address': email_address,
-                 'taggings': taggings, 'comments': comments,
-                 'phone_number': phone_number, **form} for form in forms]
-    except Exception as e:
-        print(f'Failed to process {member} - {e}')
-        return []
+    name = get_field(member, 'given_name')
+    email_address = get_email_address(member)
+    phone_number = get_phone_number(member)
+    languages_spoken = get_field(member, 'languages_spoken')
+    sign_up_date = pd.to_datetime(member['created_date']).date()
+    if sign_up_date < FORMATION_DATE:
+        sign_up_date = pd.NaT
+    forms = get_member_forms(member)
+    local_group = get_local_group(member)
+    municipality = get_custom_field(member, 'Municipality')
+    taggings = get_member_taggings(member)
+    comments = get_custom_field(member, 'comments')
+    return [{'name': name, 'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
+             'languages_spoken': languages_spoken, 'email_address': email_address,
+             'taggings': taggings, 'comments': comments,
+             'phone_number': phone_number, **form} for form in forms]
 
 
 def get_member_stats(start_date):
