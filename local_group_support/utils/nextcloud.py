@@ -37,9 +37,9 @@ def write_to_spreadsheet(url, data, deduplicate_column=None):
         with open('tmp.xlsx', 'wb') as f:
             f.write(response.content)
 
-        append_df_to_excel('tmp.xlsx', data, deduplicate_column=deduplicate_column, header=False)
+        append_df_to_excel('tmp.xlsx', data, deduplicate_column=deduplicate_column, header=False, index=False)
     else:
-        data.to_excel('tmp.xlsx')
+        data.to_excel('tmp.xlsx', index=False)
 
     with open('tmp.xlsx', 'rb') as f:
         data = f.read()

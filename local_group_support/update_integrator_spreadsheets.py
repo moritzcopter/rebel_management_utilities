@@ -15,16 +15,21 @@ if __name__ == "__main__":
             username = get_nextcloud_user()
             local_group_safe = local_group.replace('/', '').replace(' ', '').replace('â', 'a')
             url = BASE_URL + username + INTEGRATION_DIRECTORY + local_group_safe + '/' + filename
-            df_formatted = df_grouped[
-                ['name', 'email_address', 'phone_number', 'form_name', 'municipality', 'sign_up_channel',
-                 'taggings', 'comments']].set_index('submission_date').sort_index()
+
+            df_formatted = df_grouped[['name', 'submission_date', 'email_address', 'phone_number', 'form_name',
+                                       'municipality', 'taggings', 'comments']].sort_values('submission_date')
+
             df_formatted['next_action'] = 'Contact'
+            df_formatted['last_contacted'] = ''
+
             df_formatted = df_formatted.rename(columns={'name': 'Naam', 'email_address': 'E-mail',
                                                         'phone_number': 'Telefoon', 'municipality': 'Gemeente',
                                                         'form_name': 'Aangemeld via', 'taggings': 'Interesses',
+                                                        'last_contacted': 'laatst gecontacteerd',
+                                                        'submission_date': 'datum',
                                                         'next_action': 'Volgende actie', 'comments': 'Commentaar'})
 
-            write_to_spreadsheet(url, df_formatted, deduplicate_column='email_address')
+            write_to_spreadsheet(url, df_formatted, deduplicate_column='E-mail')
             post_to_channel(LOGGING_CHANNEL_ID, f'Successfully updated integrator spreadsheet for {local_group}')
         except Exception as e:
             post_to_channel(LOGGING_CHANNEL_ID, f'@all Failed to update integrator spreadsheet for {local_group} - {e}')
