@@ -16,12 +16,12 @@ if __name__ == "__main__":
             local_group_safe = local_group.replace('/', '').replace(' ', '').replace('â', 'a')
             url = BASE_URL + username + INTEGRATION_DIRECTORY + local_group_safe + '/' + filename
             df_formatted = df_grouped[
-                ['name', 'email_address', 'phone_number', 'submission_date', 'municipality', 'sign_up_channel',
+                ['name', 'email_address', 'phone_number', 'form_name', 'municipality', 'sign_up_channel',
                  'taggings', 'comments']].set_index('submission_date').sort_index()
             df_formatted['next_action'] = 'Contact'
             df_formatted = df_formatted.rename(columns={'name': 'Naam', 'email_address': 'E-mail',
                                                         'phone_number': 'Telefoon', 'municipality': 'Gemeente',
-                                                        'sign_up_channel': 'Aangemeld via', 'taggings': 'Interesses',
+                                                        'form_name': 'Aangemeld via', 'taggings': 'Interesses',
                                                         'next_action': 'Volgende actie', 'comments': 'Commentaar'})
 
             write_to_spreadsheet(url, df_formatted, deduplicate_column='email_address')
