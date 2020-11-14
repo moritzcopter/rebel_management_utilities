@@ -17,7 +17,7 @@ if __name__ == "__main__":
             url = BASE_URL + username + INTEGRATION_DIRECTORY + local_group_safe + '/' + filename
             df_formatted = df_grouped[
                 ['name', 'email_address', 'phone_number', 'submission_date', 'municipality', 'sign_up_channel',
-                 'taggings']].set_index('submission_date').sort_index()
+                 'taggings', 'comments']].set_index('submission_date').sort_index()
             df_formatted['next_action'] = 'Contact'
             write_to_spreadsheet(url, df_formatted, deduplicate_column='email_address')
             post_to_channel(LOGGING_CHANNEL_ID, f'Successfully updated integrator spreadsheet for {local_group}')

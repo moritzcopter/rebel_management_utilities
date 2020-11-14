@@ -113,9 +113,10 @@ def extract_data(member):
         local_group = get_local_group(member)
         municipality = get_custom_field(member, 'Municipality')
         taggings = get_member_taggings(member)
+        comments = get_custom_field(member, 'comments')
         return [{'name': name, 'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
                  'languages_spoken': languages_spoken, 'email_address': email_address,
-                 'taggings': taggings,
+                 'taggings': taggings, 'comments': comments,
                  'phone_number': phone_number, **form} for form in forms]
     except Exception as e:
         print(f'Failed to process {member} - {e}')
