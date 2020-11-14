@@ -19,6 +19,11 @@ if __name__ == "__main__":
                 ['name', 'email_address', 'phone_number', 'submission_date', 'municipality', 'sign_up_channel',
                  'taggings', 'comments']].set_index('submission_date').sort_index()
             df_formatted['next_action'] = 'Contact'
+            df_formatted = df_formatted.rename(columns={'name': 'Naam', 'email_address': 'E-mail',
+                                                        'phone_number': 'Telefoon', 'municipality': 'Gemeente',
+                                                        'sign_up_channel': 'Aangemeld via', 'taggings': 'Interesses',
+                                                        'next_action': 'Volgende actie', 'comments': 'Commentaar'})
+
             write_to_spreadsheet(url, df_formatted, deduplicate_column='email_address')
             post_to_channel(LOGGING_CHANNEL_ID, f'Successfully updated integrator spreadsheet for {local_group}')
         except Exception as e:
