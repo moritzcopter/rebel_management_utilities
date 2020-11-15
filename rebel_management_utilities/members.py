@@ -53,15 +53,8 @@ def get_member_forms(member):
     return forms
 
 
-def get_field(member, field):
-    return member[field] if field in member else None
-
-
 def get_custom_field(member, field):
-    value = None
-    if field in member['custom_fields']:
-        value = member['custom_fields'][field]
-    return value
+    return member['custom_fields'].get(field)
 
 
 def get_local_group(member):
@@ -86,13 +79,6 @@ def get_email_address(member):
             return email['address']
 
 
-def get_phone_number(member):
-    try:
-        return member['custom_fields']['Phone number']
-    except KeyError:
-        return
-
-
 def get_member_taggings(member):
     taggings = query(url=member['_links']['osdi:taggings']['href'])
     tag_names = []
@@ -105,10 +91,10 @@ def get_member_taggings(member):
 
 
 def extract_data(member):
-    name = get_field(member, 'given_name')
+    name = member.get('given_name')
     email_address = get_email_address(member)
-    phone_number = get_phone_number(member)
-    languages_spoken = get_field(member, 'languages_spoken')
+    phone_number = get_custom_field(member, 'Phone number')
+    languages_spoken = member.get('languages_spoken')
     sign_up_date = pd.to_datetime(member['created_date']).date()
     if sign_up_date < FORMATION_DATE:
         sign_up_date = pd.NaT
