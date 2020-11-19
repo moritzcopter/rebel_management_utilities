@@ -3,9 +3,6 @@ from openpyxl import load_workbook
 
 
 def append_df_to_excel(filename, df, deduplicate_column=None, **to_excel_kwargs):
-    if 'engine' in to_excel_kwargs:
-        to_excel_kwargs.pop('engine')
-
     writer = pd.ExcelWriter(filename, engine='openpyxl')
 
     try:
