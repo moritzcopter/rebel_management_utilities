@@ -9,7 +9,9 @@ if __name__ == "__main__":
     start_date = datetime.date.today() - datetime.timedelta(days=30)
     df = get_member_stats(start_date)
 
-    for local_group, df_grouped in df.groupby('local_group'):
+    df_filtered = df[(df['sign_up_date'] > start_date) | (df['form_name'].str.contains('Introduction session'))]
+
+    for local_group, df_grouped in df_filtered.groupby('local_group'):
         try:
             filename = f'New rebels {local_group}.xlsx'
             username = get_nextcloud_user()

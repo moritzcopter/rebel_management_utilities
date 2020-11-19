@@ -96,6 +96,8 @@ def extract_data(member):
     phone_number = get_custom_field(member, 'Phone number')
     languages_spoken = member.get('languages_spoken')
     sign_up_date = pd.to_datetime(member['created_date']).date()
+    modified_date = pd.to_datetime(member['modified_date']).date()
+
     if sign_up_date < FORMATION_DATE:
         sign_up_date = pd.NaT
     forms = get_member_forms(member)
@@ -104,6 +106,7 @@ def extract_data(member):
     taggings = get_member_taggings(member)
     comments = get_custom_field(member, 'comments')
     return [{'name': name, 'local_group': local_group, 'municipality': municipality, 'sign_up_date': sign_up_date,
+             'modified_date': modified_date,
              'languages_spoken': languages_spoken, 'email_address': email_address,
              'taggings': taggings, 'comments': comments,
              'phone_number': phone_number, **form} for form in forms]
@@ -116,7 +119,7 @@ def get_member_stats(start_date):
 
     for index, m in enumerate(members):
         print(f'Processing {index} of {len(members)}')
-        if pd.to_datetime(m['created_date']).date() <= start_date:
+        if pd.to_datetime(m['modified_date']).date() <= start_date:
             continue
         members_processed.extend(extract_data(m))
 
