@@ -13,9 +13,9 @@ if __name__ == "__main__":
 
     for local_group, df_grouped in df_filtered.groupby('local_group'):
         try:
-            filename = f'New rebels {local_group}.xlsx'
             username = get_nextcloud_user()
-            local_group_safe = local_group.replace('/', '').replace(' ', '').replace('â', 'a')
+            local_group_safe = ''.join(e for e in local_group if e.isalnum()).replace('â', 'a')
+            filename = f'New rebels {local_group_safe}.xlsx'
             url = BASE_URL + username + INTEGRATION_DIRECTORY + local_group_safe + '/' + filename
 
             df_formatted = df_grouped[['submission_date', 'name', 'email_address', 'phone_number', 'municipality',
