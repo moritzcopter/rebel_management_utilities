@@ -2,22 +2,17 @@ import pandas as pd
 from openpyxl import load_workbook
 
 
-def append_df_to_excel(filename, df, deduplicate_column=None, **to_excel_kwargs):
+def append_df_to_excel(filename, df, deduplicate_column=None, skiprows=0, **to_excel_kwargs):
     writer = pd.ExcelWriter(filename, engine='openpyxl')
+    writer.book = load_workbook(filename)
+    writer.sheets = {ws.title: ws for ws in writer.book.worksheets}
+    sheet_name = writer.book.sheetnames[0]
 
-    try:
-        writer.book = load_workbook(filename)
-
-        sheet_name = writer.book.sheetnames[0]
-        startrow = writer.book[sheet_name].max_row
-        writer.sheets = {ws.title: ws for ws in writer.book.worksheets}
-    except FileNotFoundError:
-        sheet_name = 'Sheet1'
-        startrow = 0
+    df_prev = pd.read_excel(filename, skiprows=skiprows)[df.columns].dropna(how='all')
+    startrow = len(df_prev) + skiprows + 1
 
     if deduplicate_column:
-        data = pd.read_excel(filename)
-        df = df[~df[deduplicate_column].isin(data[deduplicate_column])]
+        df = df[~df[deduplicate_column].isin(df_prev.to_numpy().flatten())]
 
     df.to_excel(writer, sheet_name, startrow=startrow, **to_excel_kwargs)
     writer.save()
