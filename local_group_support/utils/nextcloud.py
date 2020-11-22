@@ -33,13 +33,10 @@ def write_to_spreadsheet(url, data, deduplicate_column=None):
     auth = (get_nextcloud_user(), get_nextcloud_password())
     response = requests.get(url, auth=auth)
 
-    if response.status_code == 200:
-        with open('tmp.xlsx', 'wb') as f:
-            f.write(response.content)
+    with open('tmp.xlsx', 'wb') as f:
+        f.write(response.content)
 
-        append_df_to_excel('tmp.xlsx', data, deduplicate_column=deduplicate_column, header=False, index=False)
-    else:
-        data.to_excel('tmp.xlsx', index=False)
+    append_df_to_excel('tmp.xlsx', data, deduplicate_column=deduplicate_column, skiprows=1, header=False, index=False)
 
     with open('tmp.xlsx', 'rb') as f:
         data = f.read()
