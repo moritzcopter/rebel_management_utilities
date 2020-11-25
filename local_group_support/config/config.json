@@ -1,46 +1,21 @@
 {
   "local_groups": {
-    "Deventer": {
+    "Alkmaar": {
       "municipalities": [
-        "Deventer",
-        "Olst-Wijhe",
-        "Raalte",
-        "Rijssen-Holten",
-        "Lochem",
-        "Voorst"
       ]
     },
-    "Haarlem": {
+    "Almere": {
       "municipalities": [
-        "Haarlem",
-        "Haarlemmermeer"
-      ]
-    },
-    "Leiden": {
-      "municipalities": [
-        "Leiden",
-        "Leidendorp",
-        "Oegstgeest"
-      ]
-    },
-    "Maastricht": {
-      "municipalities": [
-        "Maastricht"
-      ]
-    },
-    "Utrecht": {
-      "municipalities": [
-        "Utrecht"
-      ]
-    },
-    "Wageningen": {
-      "municipalities": [
-        "Wageningen"
+        "Almere"
       ]
     },
     "Amersfoort": {
       "municipalities": [
         "Amersfoort"
+      ]
+    },
+    "Amstelveen": {
+      "municipalities": [
       ]
     },
     "Amsterdam": {
@@ -49,6 +24,28 @@
         "Diemen",
         "Ouder-Amstel",
         "Weesp"
+      ]
+    },
+    "Arnhem-Nijmegen": {
+      "municipalities": [
+        "Arnhem",
+        "Berg en Dal",
+        "Beuningen",
+        "Doesburg",
+        "Druten",
+        "Duiven",
+        "Heumen",
+        "Lingewaard",
+        "Montferland",
+        "Mook en Middelaar",
+        "Nijmegen",
+        "Overbetuwe",
+        "Renkum",
+        "Rheden",
+        "Rozendaal",
+        "Westervoort",
+        "Wijchen",
+        "Zevenaar"
       ]
     },
     "Brabant": {
@@ -131,11 +128,26 @@
         "Bergen (Noord-Holland)"
       ]
     },
+    "Delft": {
+      "municipalities": [
+        "Delft"
+      ]
+    },
     "Den Haag": {
       "municipalities": [
         "'s-Gravenhage",
         "Den Haag",
         "Rijswijk"
+      ]
+    },
+    "Deventer": {
+      "municipalities": [
+        "Deventer",
+        "Olst-Wijhe",
+        "Raalte",
+        "Rijssen-Holten",
+        "Lochem",
+        "Voorst"
       ]
     },
     "Dordrecht": {
@@ -155,6 +167,66 @@
         "Enschede"
       ]
     },
+    "Leeuwarden/Fryslân": {
+      "municipalities": [
+        "Vlieland",
+        "Terschelling",
+        "Ameland",
+        "Schiermonnikoog",
+        "Waadhoeke",
+        "Harlingen",
+        "Leeuwwarden",
+        "Dantumadiel",
+        "Dantumadeel",
+        "De Friese Meren",
+        "De Fryske Marren",
+        "Tietjerksteradeel",
+        "Tytsjerksteradiel",
+        "Súdwest-Fryslân",
+        "Noardeast-Fryslân",
+        "Achtkarspelen",
+        "Opsterland",
+        "Heerenveen",
+        "Weststellingwerf",
+        "Smallingerland",
+        "Leeuwarden/Fryslân"
+      ]
+    },
+    "Groningen": {
+      "municipalities": [
+        "Groningen",
+        "Westerkwartier",
+        "Het Hogeland",
+        "Loppersum",
+        "Appingedam",
+        "Midden-Groningen",
+        "Veendam",
+        "Pekela",
+        "Stadskanaal",
+        "Westerwolde",
+        "Oldambt",
+        "Delfzijl"
+      ]
+    },
+    "Haarlem": {
+      "municipalities": [
+        "Haarlem",
+        "Haarlemmermeer"
+      ]
+    },
+    "Leiden": {
+      "municipalities": [
+        "Leiden",
+        "Leidendorp",
+        "Oegstgeest",
+        "Voorschoten"
+      ]
+    },
+    "Maastricht": {
+      "municipalities": [
+        "Maastricht"
+      ]
+    },
     "Roermond": {
       "municipalities": [
         "Roermond",
@@ -165,6 +237,7 @@
         "Venray",
         "Horst aan de Maas",
         "Peel",
+        "Peel en Maas",
         "Venlo",
         "Beesel",
         "Leudal",
@@ -182,7 +255,17 @@
         "Krimpen"
       ]
     },
-    "Zaanstad": {
+    "Utrecht": {
+      "municipalities": [
+        "Utrecht"
+      ]
+    },
+    "Wageningen": {
+      "municipalities": [
+        "Wageningen"
+      ]
+    },
+    "Zaanstreek": {
       "municipalities": [
         "Wormerland",
         "Zaanstad",
@@ -193,26 +276,6 @@
     "Zwolle": {
       "municipalities": [
         "Zwolle"
-      ]
-    },
-    "Groningen": {
-      "municipalities": [
-        "Groningen"
-      ]
-    },
-    "Delft": {
-      "municipalities": [
-        "Delft"
-      ]
-    },
-    "Leeuwarden/Fryslân": {
-      "municipalities": [
-        "Leeuwarden/Fryslân"
-      ]
-    },
-    "Amstelveen": {
-      "municipalities": [
-        "Amstelveen"
       ]
     }
   }
