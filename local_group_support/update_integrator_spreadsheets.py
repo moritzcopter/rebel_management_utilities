@@ -8,7 +8,6 @@ from local_group_support.utils.nextcloud import get_nextcloud_user, BASE_URL, IN
 if __name__ == "__main__":
     start_date = datetime.date.today() - datetime.timedelta(days=30)
     df = get_member_stats(start_date)
-
     df_filtered = df[(df['sign_up_date'] > start_date) | (df['form_name'].str.contains('Introduction session'))]
 
     for local_group, df_grouped in df_filtered.groupby('local_group'):

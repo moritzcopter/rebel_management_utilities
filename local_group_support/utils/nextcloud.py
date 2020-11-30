@@ -30,6 +30,9 @@ def get_nextcloud_password():
 
 
 def write_to_spreadsheet(url, data, deduplicate_column=None):
+    if deduplicate_column:
+        data = data.drop_duplicates(subset=deduplicate_column)
+
     auth = (get_nextcloud_user(), get_nextcloud_password())
     response = requests.get(url, auth=auth)
 
