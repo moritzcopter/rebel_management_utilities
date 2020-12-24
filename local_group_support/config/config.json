@@ -282,6 +282,27 @@
   "circles": {
     "Tech": {
       "tagging": "Interesse in tech cirkel"
+    },
+    "ActionsLogistics": {
+      "tagging": "Interesse in actie cirkel"
+    },
+    "Arts": {
+      "tagging": "Interesse in kunst cirkel"
+    },
+    "PoliticalStrategy": {
+      "tagging": "Interesse in politieke strategie cirkel"
+    },
+    "OutreachTraining": {
+      "tagging": "Interesse in outreach en training cirkel"
+    },
+    "Media": {
+      "tagging": "Interesse in (sociale)media cirkel"
+    },
+    "Integration": {
+      "tagging": "Integratie - interesses verwerkt"
+    },
+    "Legal": {
+      "tagging": "Interesse in 'legal' cirkel"
     }
   }
 }
