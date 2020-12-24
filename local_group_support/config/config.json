@@ -278,5 +278,10 @@
         "Zwolle"
       ]
     }
+  },
+  "circles": {
+    "Tech": {
+      "tagging": "Interesse in tech cirkel"
+    }
   }
 }
