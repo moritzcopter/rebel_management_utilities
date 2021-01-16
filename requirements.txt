@@ -7,3 +7,4 @@ google-auth-oauthlib
 filecache
 openpyxl
 xlrd
+tabulate

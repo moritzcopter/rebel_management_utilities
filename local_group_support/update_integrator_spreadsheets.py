@@ -1,7 +1,7 @@
 import datetime
 
 from local_group_support.config.config import get_config
-from local_group_support.utils.mattermost import post_to_channel, LOGGING_CHANNEL_ID
+from local_group_support.utils.mattermost import post_to_channel, LOGGING_CHANNEL_ID, LOCAL_GROUP_INTEGRATORS_CHANNEL_ID
 from rebel_management_utilities.members import get_member_stats
 from local_group_support.utils.nextcloud import get_nextcloud_user, BASE_URL, INTEGRATION_DIRECTORY, \
     write_to_spreadsheet, CIRCLE_INTEGRATION_DIRECTORY
@@ -32,8 +32,21 @@ def push_spreadsheet(df, group, base_directory):
         post_to_channel(LOGGING_CHANNEL_ID, f'@all Failed to update integrator spreadsheet for {group} - {e}')
 
 
+def post_signups_to_mattermost(df):
+    df_grouped = df.groupby('local_group').size()
+    total_signups = df_grouped.sum()
+    df_grouped = df_grouped.reset_index().rename(columns={'local_group': 'Local group', 0: '#'})
+
+    with open('resources/signups_message.md', 'r') as f:
+        message = f.read()
+
+    message = message.format(total_signups=total_signups, signup_table=df_grouped.to_markdown(index=False))
+
+    post_to_channel(LOCAL_GROUP_INTEGRATORS_CHANNEL_ID, message)
+
+
 if __name__ == "__main__":
-    start_date = datetime.date.today() - datetime.timedelta(days=30)
+    start_date = datetime.date.today() - datetime.timedelta(days=7)
     df = get_member_stats(start_date)
     df_filtered = df[(df['sign_up_date'] > start_date) | (df['form_name'].str.contains('Introduction session'))]
 
@@ -43,3 +56,5 @@ if __name__ == "__main__":
     for circle, circle_config in get_config()['circles'].items():
         df_grouped = df_filtered[df_filtered['taggings'].apply(lambda x: circle_config["tagging"] in x)]
         push_spreadsheet(df_grouped, circle, CIRCLE_INTEGRATION_DIRECTORY)
+
+    post_signups_to_mattermost(df_filtered)
